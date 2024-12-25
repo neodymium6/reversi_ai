@@ -3,7 +3,7 @@ from rust_reversi import Board, Turn, MatrixEvaluator, AlphaBetaSearch
 import random
 
 DEPTH = int(sys.argv[1])
-EPSILON = 1e-2
+EPSILON = 1e-1
 
 EVAL_MATRIX = [
     [50, -10, 11, 6, 6, 11, -10, 50],
