@@ -1,29 +1,118 @@
 from rust_reversi import Arena
 import sys
+import numpy as np
+import copy
 
-RANDOM_PLAYER = "players/random_player.py"
 PIECE_PLAYER = "players/piece_player.py"
 MATRIX_PLAYER = "players/matrix_player.py"
+
+TMP_MATRIX_PLAYER = "players/tmp_matrix_player.py"
 
 PIECE_DEPTH = 4
 MATRIX_DEPTH = 2
 
-N_GAMES = 1000
 
+class GeneticOptimizer:
+    def __init__(self, population_size=50, n_games=500, initial_range=50):
+        self.population_size = population_size
+        self.n_games = n_games
+        self.python = sys.executable
+        self.piece_player = [self.python, PIECE_PLAYER, str(PIECE_DEPTH)]
+        self.matrix_player = [
+            self.python,
+            TMP_MATRIX_PLAYER,
+            str(MATRIX_DEPTH),
+        ]
 
-def main():
-    python = sys.executable
-    random_player = [python, RANDOM_PLAYER]
-    piece_player = [python, PIECE_PLAYER, str(PIECE_DEPTH)]
-    matrix_player = [python, MATRIX_PLAYER, str(MATRIX_DEPTH)]
-    arena = Arena(piece_player, matrix_player)
-    arena.play_n(N_GAMES)
+        self.population = []
+        for _ in range(population_size):
+            matrix = np.random.randint(-initial_range, initial_range, (8, 8))
+            self.population.append(matrix)
 
-    p1_win, p2_win, draw = arena.get_stats()
-    print(f"piece player wins: {p1_win}")
-    print(f"matrix player wins: {p2_win}")
-    print(f"draw: {draw}")
+    def evaluate_fitness(self, matrix):
+        self._save_matrix(matrix)
+        arena = Arena(self.piece_player, self.matrix_player)
+        arena.play_n(self.n_games)
+        p1_win, p2_win, draw = arena.get_stats()
+        return (p2_win + 0.5 * draw - p1_win) / self.n_games
+
+    def _save_matrix(self, matrix):
+        with open(TMP_MATRIX_PLAYER, "r") as f:
+            lines = f.readlines()
+
+        matrix_str = "EVAL_MATRIX = [\n"
+        for row in matrix:
+            matrix_str += "    [" + ", ".join(map(str, row)) + "],\n"
+        matrix_str += "]\n"
+
+        for i, line in enumerate(lines):
+            if line.startswith("EVAL_MATRIX"):
+                end_idx = i
+                while not lines[end_idx].strip().endswith("]"):
+                    end_idx += 1
+                lines[i : end_idx + 1] = [matrix_str]
+                break
+
+        with open(TMP_MATRIX_PLAYER, "w") as f:
+            f.writelines(lines)
+
+    def crossover(self, parent1, parent2):
+        child = np.zeros((8, 8), dtype=int)
+        for i in range(8):
+            for j in range(8):
+                child[i][j] = (
+                    parent1[i][j] if np.random.random() < 0.5 else parent2[i][j]
+                )
+        return child
+
+    def mutate(self, matrix, rate=0.2, range=10):
+        mask = np.random.random((8, 8)) < rate
+        mutations = np.random.randint(-range, range, (8, 8))
+        matrix = matrix + mask * mutations
+        return matrix.astype(int)
+
+    def evolve(self, n_generations=10):
+        for gen in range(n_generations):
+            fitness_scores = [
+                self.evaluate_fitness(matrix) for matrix in self.population
+            ]
+
+            new_population = []
+            elite_indices = np.argsort(fitness_scores)[-2:]
+            for idx in elite_indices:
+                new_population.append(copy.deepcopy(self.population[idx]))
+
+            while len(new_population) < self.population_size:
+                tournament_indices1 = np.random.choice(
+                    len(self.population), size=4, replace=False
+                )
+                parent1_idx = tournament_indices1[
+                    np.argmax([fitness_scores[i] for i in tournament_indices1])
+                ]
+                tournament_indices2 = np.random.choice(
+                    len(self.population), size=4, replace=False
+                )
+                parent2_idx = tournament_indices2[
+                    np.argmax([fitness_scores[i] for i in tournament_indices2])
+                ]
+
+                child = self.crossover(
+                    self.population[parent1_idx], self.population[parent2_idx]
+                )
+                child = self.mutate(child)
+                new_population.append(child)
+
+            self.population = new_population
+            best_fitness = max(fitness_scores)
+            avg_fitness = np.mean(fitness_scores)
+            print(f"Generation {gen + 1}")
+            print(f"Best/Avg Fitness: {best_fitness:.3f}/{avg_fitness:.3f}")
+            print("Best Matrix:")
+            print(self.population[np.argmax(fitness_scores)])
+            print()
+            optimizer._save_matrix(self.population[np.argmax(fitness_scores)])
 
 
 if __name__ == "__main__":
-    main()
+    optimizer = GeneticOptimizer()
+    optimizer.evolve(n_generations=10)
