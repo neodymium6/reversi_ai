@@ -8,16 +8,17 @@ CHAMPION_PLAYER = "players/champion_player.py"
 TMP_MATRIX_PLAYER = "players/tmp_matrix_player.py"
 
 MATRIX_DEPTH = 1
+CHAMPOIN_DEPTH = 2
 
 BASE_MATRIX = [
-    [50, -10, 11, 6, 6, 11, -10, 50],
-    [-10, -15, 1, 2, 2, 1, -15, -10],
-    [11, 1, 1, 1, 1, 1, 1, 11],
-    [6, 2, 1, 3, 3, 1, 2, 6],
-    [6, 2, 1, 3, 3, 1, 2, 6],
-    [11, 1, 1, 1, 1, 1, 1, 11],
-    [-10, -15, 1, 2, 2, 1, -15, -10],
-    [50, -10, 11, 6, 6, 11, -10, 50],
+    [15, 0, -1, 0, 9, -1, -1, 15],
+    [-3, -7, -1, 0, 0, -1, -7, -9],
+    [-1, -1, 2, 0, 0, 0, -1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 4],
+    [0, 0, 0, -9, 0, 0, 0, 1],
+    [7, -1, -9, 0, 0, 0, -1, 5],
+    [0, -5, -1, 0, -5, -1, -9, 0],
+    [15, -3, -1, 0, 0, 6, 0, 15],
 ]
 
 
@@ -29,7 +30,7 @@ class GeneticOptimizer:
         initial_range=20,
         mutation_rate=0.3,
         mutation_range=10,
-        n_generations=20,
+        n_generations=100,
         base_rate=0.2,
     ):
         self.population_size = population_size
@@ -40,7 +41,7 @@ class GeneticOptimizer:
             TMP_MATRIX_PLAYER,
             str(MATRIX_DEPTH),
         ]
-        self.champion_player = [self.python, CHAMPION_PLAYER, str(MATRIX_DEPTH)]
+        self.champion_player = [self.python, CHAMPION_PLAYER, str(CHAMPOIN_DEPTH)]
         self.mutation_rate = mutation_rate
         self.mutation_range = mutation_range
         self.n_generations = n_generations
@@ -140,11 +141,11 @@ class GeneticOptimizer:
 
             # update champion player
             best_idx = np.argmax(fitness_scores)
-            if fitness_scores[best_idx] > 0.1:
+            if fitness_scores[best_idx] > -0.1:
                 self._save_matrix(self.population[best_idx], CHAMPION_PLAYER)
 
             new_population = []
-            elite_indices = np.argsort(fitness_scores)[-2:]
+            elite_indices = np.argsort(fitness_scores)[-5:]
             for idx in elite_indices:
                 new_population.append(copy.deepcopy(self.population[idx]))
 
