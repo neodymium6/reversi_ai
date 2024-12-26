@@ -6,11 +6,11 @@ import tqdm
 
 PIECE_PLAYER = "players/piece_player.py"
 MATRIX_PLAYER = "players/matrix_player.py"
+CHAMPION_PLAYER = "players/champion_player.py"
 
 TMP_MATRIX_PLAYER = "players/tmp_matrix_player.py"
 
-PIECE_DEPTH = 4
-MATRIX_DEPTH = 2
+MATRIX_DEPTH = 4
 
 BASE_MATRIX = [
     [50, -10, 11, 6, 6, 11, -10, 50],
@@ -38,12 +38,12 @@ class GeneticOptimizer:
         self.population_size = population_size
         self.n_games = n_games
         self.python = sys.executable
-        self.piece_player = [self.python, PIECE_PLAYER, str(PIECE_DEPTH)]
         self.matrix_player = [
             self.python,
             TMP_MATRIX_PLAYER,
             str(MATRIX_DEPTH),
         ]
+        self.champion_player = [self.python, CHAMPION_PLAYER, str(MATRIX_DEPTH)]
         self.mutation_rate = mutation_rate
         self.mutation_range = mutation_range
         self.n_generations = n_generations
@@ -60,15 +60,32 @@ class GeneticOptimizer:
             matrix = np.random.randint(-initial_range, initial_range, (8, 8))
             self.population.append(matrix)
 
+        # champion player with base matrix
+        with open(TMP_MATRIX_PLAYER, "r") as f:
+            lines = f.readlines()
+        matrix_str = "EVAL_MATRIX = [\n"
+        for row in BASE_MATRIX:
+            matrix_str += "    [" + ", ".join(map(str, row)) + "],\n"
+        matrix_str += "]\n"
+        for i, line in enumerate(lines):
+            if line.startswith("EVAL_MATRIX"):
+                end_idx = i
+                while not lines[end_idx].strip().endswith("]"):
+                    end_idx += 1
+                lines[i : end_idx + 1] = [matrix_str]
+                break
+        with open(CHAMPION_PLAYER, "w") as f:
+            f.writelines(lines)
+
     def evaluate_fitness(self, matrix):
         self._save_matrix(matrix)
-        arena = Arena(self.piece_player, self.matrix_player, show_progress=False)
+        arena = Arena(self.champion_player, self.matrix_player, show_progress=False)
         arena.play_n(self.n_games)
         p1_win, p2_win, draw = arena.get_stats()
         return (p2_win + 0.5 * draw - p1_win) / self.n_games
 
-    def _save_matrix(self, matrix):
-        with open(TMP_MATRIX_PLAYER, "r") as f:
+    def _save_matrix(self, matrix, file=TMP_MATRIX_PLAYER):
+        with open(file, "r") as f:
             lines = f.readlines()
 
         matrix_str = "EVAL_MATRIX = [\n"
@@ -84,7 +101,7 @@ class GeneticOptimizer:
                 lines[i : end_idx + 1] = [matrix_str]
                 break
 
-        with open(TMP_MATRIX_PLAYER, "w") as f:
+        with open(file, "w") as f:
             f.writelines(lines)
 
     def crossover(self, parent1, parent2):
@@ -108,6 +125,11 @@ class GeneticOptimizer:
                 self.evaluate_fitness(matrix)
                 for matrix in tqdm.tqdm(self.population, leave=False)
             ]
+
+            # update champion player
+            best_idx = np.argmax(fitness_scores)
+            if fitness_scores[best_idx] > 0.1:
+                self._save_matrix(self.population[best_idx], CHAMPION_PLAYER)
 
             new_population = []
             elite_indices = np.argsort(fitness_scores)[-2:]
