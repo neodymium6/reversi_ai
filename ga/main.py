@@ -4,13 +4,10 @@ import numpy as np
 import copy
 import tqdm
 
-PIECE_PLAYER = "players/piece_player.py"
-MATRIX_PLAYER = "players/matrix_player.py"
 CHAMPION_PLAYER = "players/champion_player.py"
-
 TMP_MATRIX_PLAYER = "players/tmp_matrix_player.py"
 
-MATRIX_DEPTH = 4
+MATRIX_DEPTH = 1
 
 BASE_MATRIX = [
     [50, -10, 11, 6, 6, 11, -10, 50],
@@ -27,8 +24,8 @@ BASE_MATRIX = [
 class GeneticOptimizer:
     def __init__(
         self,
-        population_size=50,
-        n_games=200,
+        population_size=20,
+        n_games=500,
         initial_range=20,
         mutation_rate=0.3,
         mutation_range=10,
@@ -108,10 +105,25 @@ class GeneticOptimizer:
         child = np.zeros((8, 8), dtype=int)
         for i in range(8):
             for j in range(8):
-                child[i][j] = (
-                    parent1[i][j] if np.random.random() < 0.5 else parent2[i][j]
-                )
-        return child
+                child[i][j] = int((parent1[i][j] + parent2[i][j]) / 2)
+        rot90 = np.rot90(child)
+        rot180 = np.rot90(rot90)
+        rot270 = np.rot90(rot180)
+        flip = np.flip(child, axis=1)
+        flip_rot90 = np.rot90(flip)
+        flip_rot180 = np.rot90(flip_rot90)
+        flip_rot270 = np.rot90(flip_rot180)
+        child = (
+            child
+            + rot90
+            + rot180
+            + rot270
+            + flip
+            + flip_rot90
+            + flip_rot180
+            + flip_rot270
+        ) / 8
+        return child.astype(int)
 
     def mutate(self, matrix):
         mask = np.random.random((8, 8)) < self.mutation_rate
