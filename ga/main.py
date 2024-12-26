@@ -12,6 +12,17 @@ TMP_MATRIX_PLAYER = "players/tmp_matrix_player.py"
 PIECE_DEPTH = 4
 MATRIX_DEPTH = 2
 
+BASE_MATRIX = [
+    [50, -10, 11, 6, 6, 11, -10, 50],
+    [-10, -15, 1, 2, 2, 1, -15, -10],
+    [11, 1, 1, 1, 1, 1, 1, 11],
+    [6, 2, 1, 3, 3, 1, 2, 6],
+    [6, 2, 1, 3, 3, 1, 2, 6],
+    [11, 1, 1, 1, 1, 1, 1, 11],
+    [-10, -15, 1, 2, 2, 1, -15, -10],
+    [50, -10, 11, 6, 6, 11, -10, 50],
+]
+
 
 class GeneticOptimizer:
     def __init__(
@@ -22,6 +33,7 @@ class GeneticOptimizer:
         mutation_rate=0.3,
         mutation_range=10,
         n_generations=20,
+        base_rate=0.2,
     ):
         self.population_size = population_size
         self.n_games = n_games
@@ -37,7 +49,14 @@ class GeneticOptimizer:
         self.n_generations = n_generations
 
         self.population = []
-        for _ in range(population_size):
+        # Initialize population based on base matrix
+        for _ in range(int(population_size * base_rate)):
+            noise = np.random.randint(-mutation_range, mutation_range, (8, 8))
+            mask = np.random.random((8, 8)) < mutation_rate
+            matrix = np.array(BASE_MATRIX) + mask * noise
+            self.population.append(matrix.astype(int))
+        # Initialize population with random matrices
+        while len(self.population) < population_size:
             matrix = np.random.randint(-initial_range, initial_range, (8, 8))
             self.population.append(matrix)
 
