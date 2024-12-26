@@ -31,7 +31,7 @@ class GeneticOptimizer:
 
     def evaluate_fitness(self, matrix):
         self._save_matrix(matrix)
-        arena = Arena(self.piece_player, self.matrix_player)
+        arena = Arena(self.piece_player, self.matrix_player, show_progress=False)
         arena.play_n(self.n_games)
         p1_win, p2_win, draw = arena.get_stats()
         return (p2_win + 0.5 * draw - p1_win) / self.n_games
