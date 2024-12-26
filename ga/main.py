@@ -14,7 +14,15 @@ MATRIX_DEPTH = 2
 
 
 class GeneticOptimizer:
-    def __init__(self, population_size=50, n_games=500, initial_range=50):
+    def __init__(
+        self,
+        population_size=50,
+        n_games=500,
+        initial_range=50,
+        mutation_rate=0.2,
+        mutation_range=10,
+        n_generations=10,
+    ):
         self.population_size = population_size
         self.n_games = n_games
         self.python = sys.executable
@@ -24,6 +32,9 @@ class GeneticOptimizer:
             TMP_MATRIX_PLAYER,
             str(MATRIX_DEPTH),
         ]
+        self.mutation_rate = mutation_rate
+        self.mutation_range = mutation_range
+        self.n_generations = n_generations
 
         self.population = []
         for _ in range(population_size):
@@ -66,14 +77,14 @@ class GeneticOptimizer:
                 )
         return child
 
-    def mutate(self, matrix, rate=0.2, range=10):
-        mask = np.random.random((8, 8)) < rate
-        mutations = np.random.randint(-range, range, (8, 8))
+    def mutate(self, matrix):
+        mask = np.random.random((8, 8)) < self.mutation_rate
+        mutations = np.random.randint(-self.mutation_range, self.mutation_range, (8, 8))
         matrix = matrix + mask * mutations
         return matrix.astype(int)
 
-    def evolve(self, n_generations=10):
-        for gen in tqdm.tqdm(range(n_generations)):
+    def evolve(self):
+        for gen in tqdm.tqdm(range(self.n_generations)):
             fitness_scores = [
                 self.evaluate_fitness(matrix)
                 for matrix in tqdm.tqdm(self.population, leave=False)
@@ -117,4 +128,4 @@ class GeneticOptimizer:
 
 if __name__ == "__main__":
     optimizer = GeneticOptimizer()
-    optimizer.evolve(n_generations=10)
+    optimizer.evolve()
