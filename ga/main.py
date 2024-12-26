@@ -2,6 +2,7 @@ from rust_reversi import Arena
 import sys
 import numpy as np
 import copy
+import tqdm
 
 PIECE_PLAYER = "players/piece_player.py"
 MATRIX_PLAYER = "players/matrix_player.py"
@@ -72,9 +73,10 @@ class GeneticOptimizer:
         return matrix.astype(int)
 
     def evolve(self, n_generations=10):
-        for gen in range(n_generations):
+        for gen in tqdm.tqdm(range(n_generations)):
             fitness_scores = [
-                self.evaluate_fitness(matrix) for matrix in self.population
+                self.evaluate_fitness(matrix)
+                for matrix in tqdm.tqdm(self.population, leave=False)
             ]
 
             new_population = []
