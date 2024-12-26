@@ -3,7 +3,7 @@ from rust_reversi import Board, Turn, PieceEvaluator, AlphaBetaSearch
 import random
 
 DEPTH = int(sys.argv[1])
-EPSILON = 1e-1
+EPSILON = 5e-2
 
 
 def main():
