@@ -17,11 +17,11 @@ class GeneticOptimizer:
     def __init__(
         self,
         population_size=50,
-        n_games=500,
-        initial_range=50,
-        mutation_rate=0.2,
+        n_games=200,
+        initial_range=20,
+        mutation_rate=0.3,
         mutation_range=10,
-        n_generations=10,
+        n_generations=20,
     ):
         self.population_size = population_size
         self.n_games = n_games
@@ -115,7 +115,6 @@ class GeneticOptimizer:
                 child = self.mutate(child)
                 new_population.append(child)
 
-            self.population = new_population
             best_fitness = max(fitness_scores)
             avg_fitness = np.mean(fitness_scores)
             print(f"Generation {gen + 1}")
@@ -124,6 +123,7 @@ class GeneticOptimizer:
             print(self.population[np.argmax(fitness_scores)])
             print()
             optimizer._save_matrix(self.population[np.argmax(fitness_scores)])
+            self.population = new_population
 
 
 if __name__ == "__main__":
