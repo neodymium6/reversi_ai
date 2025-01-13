@@ -1,4 +1,6 @@
 mod evaluator_evaluator;
+mod evaluators;
+mod genetic_optimizer;
 use evaluator_evaluator::EvaluatorEvaluator;
 use rust_reversi_core::search::LegalNumEvaluator;
 use rust_reversi_core::search::PieceEvaluator;
