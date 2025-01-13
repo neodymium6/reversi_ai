@@ -1,4 +1,4 @@
-mod simple;
+pub mod simple;
 
 use rust_reversi_core::search::Evaluator;
 

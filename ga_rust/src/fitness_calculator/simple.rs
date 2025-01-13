@@ -21,6 +21,6 @@ impl FitnessCalculator for SimpleFitnessCalculator {
             0.1,
         );
         let (self_score, arg_score) = evaluator_evaluator.eval(100);
-        arg_score - self_score
+        arg_score
     }
 }

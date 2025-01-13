@@ -1,8 +1,8 @@
 use crate::evaluators::{GeneticEvaluator, GeneticEvaluatorFactory};
 use crate::fitness_calculator::FitnessCalculator;
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rand::Rng;
 use rust_reversi_core::search::Evaluator;
-use std::time::Duration;
 
 pub struct GeneticRateConfig {
     mutation_rate: f64,
@@ -26,8 +26,7 @@ pub struct GeneticOptimizer<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> {
     generation: usize,
     rate_config: GeneticRateConfig,
     tournament_size: usize,
-    timeout: Duration,
-    epsilon: f64,
+    max_generations: usize,
     factory: Y,
     fitness_calculator: Z,
 }
@@ -45,8 +44,7 @@ impl<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> GeneticOptimizer<Y, Z> {
         population_size: usize,
         rate_config: GeneticRateConfig,
         tournament_size: usize,
-        timeout: Duration,
-        epsilon: f64,
+        max_generations: usize,
         factory: Y,
         fitness_calculator: Z,
     ) -> GeneticOptimizer<Y, Z> {
@@ -56,25 +54,37 @@ impl<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> GeneticOptimizer<Y, Z> {
             generation: 0,
             rate_config,
             tournament_size,
-            timeout,
-            epsilon,
+            max_generations,
             factory,
             fitness_calculator,
         }
     }
 
     fn evaluate_fitness(&self) -> Vec<f64> {
+        let pb = ProgressBar::new(self.population_size as u64);
+        pb.set_style(
+            ProgressStyle::with_template("[{wide_bar}] [{elapsed_precise}] ({eta})")
+                .unwrap()
+                .with_key(
+                    "eta",
+                    |state: &ProgressState, w: &mut dyn std::fmt::Write| {
+                        write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+                    },
+                )
+                .progress_chars("#>-"),
+        );
         let mut fitnesses = Vec::new();
         for individual in &self.population {
             fitnesses.push(
                 self.fitness_calculator
                     .calculate_fitness(individual.to_evaluator()),
             );
+            pb.inc(1);
         }
         fitnesses
     }
 
-    fn select_parent(&self, fitnesses: &Vec<f64>) -> &Box<dyn GeneticEvaluator> {
+    fn select_parent(&self, fitnesses: &[f64]) -> &dyn GeneticEvaluator {
         let mut rng = rand::thread_rng();
         let mut best = rng.gen_range(0..self.population_size);
         for _ in 0..self.tournament_size {
@@ -83,18 +93,17 @@ impl<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> GeneticOptimizer<Y, Z> {
                 best = candidate;
             }
         }
-        &self.population[best]
+        self.population[best].as_ref()
     }
 
-    fn evolve(&mut self) {
-        let fitnesses = self.evaluate_fitness();
+    fn evolve(&mut self, fitnesses: &[f64]) {
         let mut new_population = Vec::new();
         for _ in 0..self.population_size {
-            let parent1 = self.select_parent(&fitnesses);
-            let parent2 = self.select_parent(&fitnesses);
+            let parent1 = self.select_parent(fitnesses);
+            let parent2 = self.select_parent(fitnesses);
             let mut rng = rand::thread_rng();
             let child = if rng.gen_bool(self.rate_config.crossover_rate) {
-                parent1.crossover(&**parent2)
+                parent1.crossover(parent2)
             } else {
                 parent1.mutate()
             };
@@ -104,7 +113,24 @@ impl<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> GeneticOptimizer<Y, Z> {
         self.generation += 1;
     }
 
-    pub fn optimize(&self) -> Box<dyn Evaluator> {
-        unimplemented!()
+    pub fn optimize(&mut self) -> Box<dyn Evaluator> {
+        let mut best = 0;
+        let mut best_fitness = 0.0;
+        for _ in 0..self.max_generations {
+            let fitnesses = self.evaluate_fitness();
+            for (i, &fitness) in fitnesses.iter().enumerate() {
+                if fitness > best_fitness {
+                    best = i;
+                    best_fitness = fitness;
+                }
+            }
+            println!(
+                "Generation: {}, Best Fitness: {}",
+                self.generation, best_fitness
+            );
+            println!("Best Individual: {:?}", self.population[best]);
+            self.evolve(&fitnesses);
+        }
+        self.population[best].to_evaluator()
     }
 }
