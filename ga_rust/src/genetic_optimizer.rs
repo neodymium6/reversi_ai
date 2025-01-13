@@ -22,7 +22,7 @@ impl GeneticRateConfig {
 pub struct GeneticOptimizer<
     X: GeneticEvaluator,
     Y: GeneticEvaluatorFactory<X>,
-    Z: FitnessCalculator<X>,
+    Z: FitnessCalculator,
 > {
     population: Vec<Box<X>>,
     population_size: usize,
@@ -35,7 +35,7 @@ pub struct GeneticOptimizer<
     fitness_calculator: Z,
 }
 
-impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator<X>>
+impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator>
     GeneticOptimizer<X, Y, Z>
 {
     fn initialize_population(size: usize, factory: &Y) -> Vec<Box<X>> {
@@ -74,7 +74,10 @@ impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator<X>
     fn evaluate_fitness(&self) -> Vec<f64> {
         let mut fitnesses = Vec::new();
         for individual in &self.population {
-            fitnesses.push(self.fitness_calculator.calculate_fitness(individual));
+            fitnesses.push(
+                self.fitness_calculator
+                    .calculate_fitness(individual.to_evaluator()),
+            );
         }
         fitnesses
     }

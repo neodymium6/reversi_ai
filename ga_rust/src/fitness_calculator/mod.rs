@@ -1,5 +1,7 @@
-use crate::evaluators::GeneticEvaluator;
+mod simple;
 
-pub trait FitnessCalculator<X: GeneticEvaluator> {
-    fn calculate_fitness(&self, evaluator: &Box<X>) -> f64;
+use rust_reversi_core::search::Evaluator;
+
+pub trait FitnessCalculator {
+    fn calculate_fitness(&self, evaluator: Box<dyn Evaluator>) -> f64;
 }

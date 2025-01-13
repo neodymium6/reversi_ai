@@ -37,6 +37,11 @@ impl<const N: usize> GeneticEvaluator for GeneticBitMatrixEvaluator<N> {
     fn crossover(&self, other: &dyn GeneticEvaluator) -> Box<dyn GeneticEvaluator> {
         unimplemented!()
     }
+
+    fn to_evaluator(&self) -> Box<dyn Evaluator> {
+        let evaluator = BitMatrixEvaluator::<N>::new(self.weights.to_vec(), self.masks.to_vec());
+        Box::new(evaluator)
+    }
 }
 
 pub struct GeneticBitMatrixEvaluatorFactory<const N: usize> {}
