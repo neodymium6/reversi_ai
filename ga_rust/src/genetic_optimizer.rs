@@ -1,5 +1,5 @@
-use crate::evaluator_evaluator::EvaluatorEvaluator;
 use crate::evaluators::{GeneticEvaluator, GeneticEvaluatorFactory};
+use crate::fitness_calculator::FitnessCalculator;
 use rust_reversi_core::search::Evaluator;
 use std::time::Duration;
 
@@ -19,7 +19,11 @@ impl GeneticRateConfig {
     }
 }
 
-pub struct GeneticOptimizer<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>> {
+pub struct GeneticOptimizer<
+    X: GeneticEvaluator,
+    Y: GeneticEvaluatorFactory<X>,
+    Z: FitnessCalculator<X>,
+> {
     population: Vec<Box<X>>,
     population_size: usize,
     generation: usize,
@@ -28,9 +32,12 @@ pub struct GeneticOptimizer<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>> 
     timeout: Duration,
     epsilon: f64,
     factory: Y,
+    fitness_calculator: Z,
 }
 
-impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>> GeneticOptimizer<X, Y> {
+impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator<X>>
+    GeneticOptimizer<X, Y, Z>
+{
     fn initialize_population(size: usize, factory: &Y) -> Vec<Box<X>> {
         let mut population = Vec::new();
         for _ in 0..size {
@@ -46,9 +53,13 @@ impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>> GeneticOptimizer<X, Y> 
         timeout: Duration,
         epsilon: f64,
         factory: Y,
-    ) -> GeneticOptimizer<X, Y> {
+        fitness_calculator: Z,
+    ) -> GeneticOptimizer<X, Y, Z> {
         GeneticOptimizer {
-            population: GeneticOptimizer::initialize_population(population_size, &factory),
+            population: GeneticOptimizer::<X, Y, Z>::initialize_population(
+                population_size,
+                &factory,
+            ),
             population_size,
             generation: 0,
             rate_config,
@@ -56,11 +67,16 @@ impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>> GeneticOptimizer<X, Y> 
             timeout,
             epsilon,
             factory,
+            fitness_calculator,
         }
     }
 
     fn evaluate_fitness(&self) -> Vec<f64> {
-        unimplemented!()
+        let mut fitnesses = Vec::new();
+        for individual in &self.population {
+            fitnesses.push(self.fitness_calculator.calculate_fitness(individual));
+        }
+        fitnesses
     }
 
     pub fn optimize(&self) -> Box<dyn Evaluator> {

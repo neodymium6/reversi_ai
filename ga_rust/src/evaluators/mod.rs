@@ -1,6 +1,5 @@
 mod bitmatrix;
 
-use rust_reversi_core::search::BitMatrixEvaluator;
 use rust_reversi_core::search::Evaluator;
 
 pub trait GeneticEvaluator: Evaluator {

@@ -1,5 +1,6 @@
 mod evaluator_evaluator;
 mod evaluators;
+mod fitness_calculator;
 mod genetic_optimizer;
 use evaluator_evaluator::EvaluatorEvaluator;
 use rust_reversi_core::search::LegalNumEvaluator;
