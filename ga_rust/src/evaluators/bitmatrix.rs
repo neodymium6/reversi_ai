@@ -46,10 +46,8 @@ impl<const N: usize> GeneticEvaluator for GeneticBitMatrixEvaluator<N> {
 
 pub struct GeneticBitMatrixEvaluatorFactory<const N: usize> {}
 
-impl<const N: usize> GeneticEvaluatorFactory<GeneticBitMatrixEvaluator<N>>
-    for GeneticBitMatrixEvaluatorFactory<N>
-{
-    fn generate(&self) -> Box<GeneticBitMatrixEvaluator<N>> {
+impl<const N: usize> GeneticEvaluatorFactory for GeneticBitMatrixEvaluatorFactory<N> {
+    fn generate(&self) -> Box<dyn GeneticEvaluator> {
         unimplemented!()
     }
 }

@@ -8,6 +8,6 @@ pub trait GeneticEvaluator: Evaluator {
     fn to_evaluator(&self) -> Box<dyn Evaluator>;
 }
 
-pub trait GeneticEvaluatorFactory<X: GeneticEvaluator> {
-    fn generate(&self) -> Box<X>;
+pub trait GeneticEvaluatorFactory {
+    fn generate(&self) -> Box<dyn GeneticEvaluator>;
 }

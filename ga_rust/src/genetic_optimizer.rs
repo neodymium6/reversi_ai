@@ -1,5 +1,6 @@
 use crate::evaluators::{GeneticEvaluator, GeneticEvaluatorFactory};
 use crate::fitness_calculator::FitnessCalculator;
+use rand::Rng;
 use rust_reversi_core::search::Evaluator;
 use std::time::Duration;
 
@@ -19,12 +20,8 @@ impl GeneticRateConfig {
     }
 }
 
-pub struct GeneticOptimizer<
-    X: GeneticEvaluator,
-    Y: GeneticEvaluatorFactory<X>,
-    Z: FitnessCalculator,
-> {
-    population: Vec<Box<X>>,
+pub struct GeneticOptimizer<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> {
+    population: Vec<Box<dyn GeneticEvaluator>>,
     population_size: usize,
     generation: usize,
     rate_config: GeneticRateConfig,
@@ -35,10 +32,8 @@ pub struct GeneticOptimizer<
     fitness_calculator: Z,
 }
 
-impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator>
-    GeneticOptimizer<X, Y, Z>
-{
-    fn initialize_population(size: usize, factory: &Y) -> Vec<Box<X>> {
+impl<Y: GeneticEvaluatorFactory, Z: FitnessCalculator> GeneticOptimizer<Y, Z> {
+    fn initialize_population(size: usize, factory: &Y) -> Vec<Box<dyn GeneticEvaluator>> {
         let mut population = Vec::new();
         for _ in 0..size {
             population.push(factory.generate());
@@ -54,12 +49,9 @@ impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator>
         epsilon: f64,
         factory: Y,
         fitness_calculator: Z,
-    ) -> GeneticOptimizer<X, Y, Z> {
+    ) -> GeneticOptimizer<Y, Z> {
         GeneticOptimizer {
-            population: GeneticOptimizer::<X, Y, Z>::initialize_population(
-                population_size,
-                &factory,
-            ),
+            population: GeneticOptimizer::<Y, Z>::initialize_population(population_size, &factory),
             population_size,
             generation: 0,
             rate_config,
@@ -80,6 +72,36 @@ impl<X: GeneticEvaluator, Y: GeneticEvaluatorFactory<X>, Z: FitnessCalculator>
             );
         }
         fitnesses
+    }
+
+    fn select_parent(&self, fitnesses: &Vec<f64>) -> &Box<dyn GeneticEvaluator> {
+        let mut rng = rand::thread_rng();
+        let mut best = rng.gen_range(0..self.population_size);
+        for _ in 0..self.tournament_size {
+            let candidate = rng.gen_range(0..self.population_size);
+            if fitnesses[candidate] > fitnesses[best] {
+                best = candidate;
+            }
+        }
+        &self.population[best]
+    }
+
+    fn evolve(&mut self) {
+        let fitnesses = self.evaluate_fitness();
+        let mut new_population = Vec::new();
+        for _ in 0..self.population_size {
+            let parent1 = self.select_parent(&fitnesses);
+            let parent2 = self.select_parent(&fitnesses);
+            let mut rng = rand::thread_rng();
+            let child = if rng.gen_bool(self.rate_config.crossover_rate) {
+                parent1.crossover(&**parent2)
+            } else {
+                parent1.mutate()
+            };
+            new_population.push(child);
+        }
+        self.population = new_population;
+        self.generation += 1;
     }
 
     pub fn optimize(&self) -> Box<dyn Evaluator> {
