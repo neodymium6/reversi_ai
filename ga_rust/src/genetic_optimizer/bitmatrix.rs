@@ -84,20 +84,19 @@ impl<const N: usize> BitMatrixOptimizer<N> {
     fn evolve(&mut self, fitnesses: Vec<f64>) {
         let selected = self.select(fitnesses);
         let mut new_population = Vec::new();
-        for _ in 0..self.config.population_size {
+        for i in 0..self.config.population_size {
             let mut rng = rand::thread_rng();
-            let parent1 = &selected[rng.gen_range(0..self.config.population_size)];
-            let parent2 = &selected[rng.gen_range(0..self.config.population_size)];
-            let child = if rng.gen_bool(self.config.crossover_rate) {
-                if rng.gen_bool(self.config.mutation_rate) {
-                    parent1.crossover(parent2).mutate()
-                } else {
-                    parent1.crossover(parent2)
-                }
-            } else {
-                parent1.mutate()
+            let parent1 = match rng.gen_bool(self.config.mutation_rate) {
+                true => &selected[i].mutate(),
+                false => &selected[i],
             };
-            new_population.push(child);
+            match rng.gen_bool(self.config.crossover_rate) {
+                true => {
+                    let parent2 = selected[rng.gen_range(0..self.config.population_size)].clone();
+                    new_population.push(parent1.crossover(&parent2));
+                }
+                false => new_population.push(parent1.clone()),
+            }
         }
         self.population = new_population;
     }
