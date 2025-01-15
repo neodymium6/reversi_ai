@@ -21,7 +21,7 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
 
     pub fn new_from_random() -> GeneticBitMatrixEvaluator<N> {
         let mut rng = rand::thread_rng();
-        let mut masks = [
+        let masks = [
             0x0000001818000000,
             0x0000182424180000,
             0x0000240000240000,
@@ -34,50 +34,30 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
             0x8100000000000081,
         ];
         let mut weights = [0; N];
-        for i in 0..N {
-            // for _ in 0..64 {
-            //     if rng.gen_bool(0.2) {
-            //         masks[i] |= 1;
-            //     }
-            //     masks[i] <<= 1;
-            // }
-            weights[i] = rng.gen_range(-10..10);
+        for w in weights.iter_mut() {
+            *w = rng.gen_range(-10..10);
         }
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
     }
 
     pub fn mutate(&self) -> GeneticBitMatrixEvaluator<N> {
         let mut rng = rand::thread_rng();
-        let mut masks = self.masks;
+        let masks = self.masks;
         let mut weights = self.weights;
         let index = rng.gen_range(0..N);
-        // let mut mask = 0;
-        // for _ in 0..64 {
-        //     if rng.gen_bool(0.2) {
-        //         mask |= 1;
-        //     }
-        //     mask <<= 1;
-        // }
-        // masks[index] = mask;
         weights[index] = rng.gen_range(-10..10);
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
     }
 
     pub fn crossover(&self, other: &GeneticBitMatrixEvaluator<N>) -> GeneticBitMatrixEvaluator<N> {
         let mut rng = rand::thread_rng();
-        let mut masks = self.masks;
+        let masks = self.masks;
         let mut weights = self.weights;
-        for i in 0..N {
+        for (i, w) in weights.iter_mut().enumerate() {
             if rng.gen_bool(0.5) {
-                // masks[i] = self.masks[i] ^ other.masks[i];
-                // masks[i] = match rng.gen_bool(0.5) {
-                //     true => self.masks[i] ^ other.masks[i],
-                //     false => self.masks[i] | other.masks[i],
-                // };
-                weights[i] = (self.weights[i] + other.weights[i]) / 2;
+                *w = (self.weights[i] + other.weights[i]) / 2;
             } else if rng.gen_bool(0.5) {
-                // masks[i] = other.masks[i];
-                weights[i] = other.weights[i];
+                *w = other.weights[i];
             }
         }
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
