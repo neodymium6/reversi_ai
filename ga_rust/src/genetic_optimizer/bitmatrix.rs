@@ -100,6 +100,8 @@ impl<const N: usize> BitMatrixOptimizer<N> {
             self.evolve(fitnesses);
             self.generation += 1;
         }
+        println!("Global Best Fitness: {}", global_best_fitness);
+        println!("Global Best Individual: {:?}", global_best_indivisual);
         global_best_indivisual
     }
 }
