@@ -46,12 +46,11 @@ impl<const N: usize> SimpleFitnessCalculator<N> {
             self.evaluator.to_evaluator(),
             Box::new(evaluator),
             std::time::Duration::from_millis(10),
-            3,
-            3,
+            1,
+            1,
             0.1,
             false,
         );
-        // let (_self_score, arg_score) = evaluator_evaluator.eval(100);
         let (_self_score, arg_score) = evaluator_evaluator.eval_with_depth(100);
         arg_score
     }
@@ -86,16 +85,19 @@ impl<const N: usize> FitnessCalculator<N> for SimpleFitnessCalculator<N> {
 
 pub struct MultiFitnessCalculator<const N: usize> {
     fitness_calculators: Vec<SimpleFitnessCalculator<N>>,
+    weights: Vec<f64>,
 }
 
 impl<const N: usize> MultiFitnessCalculator<N> {
-    pub fn new(evaluators: Vec<EvaluatorType>) -> MultiFitnessCalculator<N> {
+    pub fn new(evaluators: Vec<(EvaluatorType, f64)>) -> MultiFitnessCalculator<N> {
         let fitness_calculators = evaluators
             .iter()
-            .map(|evaluator| SimpleFitnessCalculator::<N>::new(evaluator.clone()))
+            .map(|evaluator| SimpleFitnessCalculator::<N>::new(evaluator.0.clone()))
             .collect();
+        let weights = evaluators.iter().map(|evaluator| evaluator.1).collect();
         MultiFitnessCalculator {
             fitness_calculators,
+            weights,
         }
     }
 }
@@ -122,8 +124,9 @@ impl<const N: usize> FitnessCalculator<N> for MultiFitnessCalculator<N> {
                     .fitness_calculators
                     .iter()
                     .map(|fitness_calculator| fitness_calculator.vs_self(evaluator.clone()))
-                    .sum::<f64>()
-                    / self.fitness_calculators.len() as f64;
+                    .zip(self.weights.iter())
+                    .map(|(fitness, weight)| fitness * weight)
+                    .sum();
                 let pb = pb.lock().unwrap();
                 pb.inc(1);
                 fitness
