@@ -1,19 +1,19 @@
 use rand::Rng;
 
 use crate::evaluators::bitmatrix::GeneticBitMatrixEvaluator;
-use crate::fitness_calculator::bitmatrix::SimpleFitnessCalculator;
+use crate::fitness_calculator::bitmatrix::FitnessCalculator;
 use crate::genetic_optimizer::OptimizerConfig;
 
 pub struct BitMatrixOptimizer<const N: usize> {
     population: Vec<GeneticBitMatrixEvaluator<N>>,
-    fitness_calculator: SimpleFitnessCalculator<N>,
+    fitness_calculator: Box<dyn FitnessCalculator<N>>,
     generation: usize,
     config: OptimizerConfig,
 }
 
 impl<const N: usize> BitMatrixOptimizer<N> {
     pub fn new(
-        fitness_calculator: SimpleFitnessCalculator<N>,
+        fitness_calculator: Box<dyn FitnessCalculator<N>>,
         config: OptimizerConfig,
     ) -> BitMatrixOptimizer<N> {
         let mut population = Vec::new();
