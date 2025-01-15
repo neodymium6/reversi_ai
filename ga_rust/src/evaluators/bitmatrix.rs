@@ -21,15 +21,26 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
 
     pub fn new_from_random() -> GeneticBitMatrixEvaluator<N> {
         let mut rng = rand::thread_rng();
-        let mut masks = [0; N];
+        let mut masks = [
+            0x0000001818000000,
+            0x0000182424180000,
+            0x0000240000240000,
+            0x0018004242001800,
+            0x0024420000422400,
+            0x0042000000004200,
+            0x1800008181000018,
+            0x2400810000810024,
+            0x4281000000008142,
+            0x8100000000000081,
+        ];
         let mut weights = [0; N];
         for i in 0..N {
-            for _ in 0..64 {
-                if rng.gen_bool(0.2) {
-                    masks[i] |= 1;
-                }
-                masks[i] <<= 1;
-            }
+            // for _ in 0..64 {
+            //     if rng.gen_bool(0.2) {
+            //         masks[i] |= 1;
+            //     }
+            //     masks[i] <<= 1;
+            // }
             weights[i] = rng.gen_range(-10..10);
         }
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
@@ -40,14 +51,14 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         let mut masks = self.masks;
         let mut weights = self.weights;
         let index = rng.gen_range(0..N);
-        let mut mask = 0;
-        for _ in 0..64 {
-            if rng.gen_bool(0.2) {
-                mask |= 1;
-            }
-            mask <<= 1;
-        }
-        masks[index] = mask;
+        // let mut mask = 0;
+        // for _ in 0..64 {
+        //     if rng.gen_bool(0.2) {
+        //         mask |= 1;
+        //     }
+        //     mask <<= 1;
+        // }
+        // masks[index] = mask;
         weights[index] = rng.gen_range(-10..10);
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
     }
@@ -59,13 +70,13 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         for i in 0..N {
             if rng.gen_bool(0.5) {
                 // masks[i] = self.masks[i] ^ other.masks[i];
-                masks[i] = match rng.gen_bool(0.5) {
-                    true => self.masks[i] ^ other.masks[i],
-                    false => self.masks[i] | other.masks[i],
-                };
+                // masks[i] = match rng.gen_bool(0.5) {
+                //     true => self.masks[i] ^ other.masks[i],
+                //     false => self.masks[i] | other.masks[i],
+                // };
                 weights[i] = (self.weights[i] + other.weights[i]) / 2;
             } else if rng.gen_bool(0.5) {
-                masks[i] = other.masks[i];
+                // masks[i] = other.masks[i];
                 weights[i] = other.weights[i];
             }
         }
