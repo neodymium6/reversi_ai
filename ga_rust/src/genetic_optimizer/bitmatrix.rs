@@ -1,15 +1,8 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-
 use rand::Rng;
 
 use crate::evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use crate::fitness_calculator::bitmatrix::SimpleFitnessCalculator;
 use crate::genetic_optimizer::OptimizerConfig;
-use indicatif::ProgressBar;
-use indicatif::ProgressState;
-use indicatif::ProgressStyle;
-use rayon::prelude::*;
 
 pub struct BitMatrixOptimizer<const N: usize> {
     population: Vec<GeneticBitMatrixEvaluator<N>>,
@@ -36,31 +29,12 @@ impl<const N: usize> BitMatrixOptimizer<N> {
     }
 
     fn evaluate_fitness(&self) -> Vec<f64> {
-        let pb = ProgressBar::new(self.config.population_size as u64);
-        pb.set_style(
-            ProgressStyle::with_template("[{wide_bar}] [{elapsed_precise}] ({eta})")
-                .unwrap()
-                .with_key(
-                    "eta",
-                    |state: &ProgressState, w: &mut dyn std::fmt::Write| {
-                        write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
-                    },
-                )
-                .progress_chars("#>-"),
-        );
-        let pb = Arc::new(Mutex::new(pb));
-        self.population
-            .par_iter()
-            // .iter()
-            .map(|evaluator| {
-                self.fitness_calculator
-                    .calculate_fitness(evaluator.to_evaluator())
-            })
-            .inspect(|_| {
-                let pb = pb.lock().unwrap();
-                pb.inc(1);
-            })
-            .collect()
+        let evaluators = self
+            .population
+            .iter()
+            .map(|evaluator| evaluator.to_evaluator())
+            .collect::<Vec<_>>();
+        self.fitness_calculator.calculate_fitness(evaluators)
     }
 
     fn select(&self, fitnesses: Vec<f64>) -> Vec<GeneticBitMatrixEvaluator<N>> {
