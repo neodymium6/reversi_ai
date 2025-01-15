@@ -22,6 +22,7 @@ impl<const N: usize> SimpleFitnessCalculator<N> {
             Box::new(evaluator),
             std::time::Duration::from_millis(10),
             3,
+            3,
             0.1,
             false,
         );

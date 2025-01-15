@@ -33,13 +33,14 @@ impl EvaluatorEvaluator {
         evaluator1: Box<dyn Evaluator>,
         evaluator2: Box<dyn Evaluator>,
         timeout: Duration,
-        depth: usize,
+        depth1: usize,
+        depth2: usize,
         epsilon: f64,
         show_progress: bool,
     ) -> EvaluatorEvaluator {
         EvaluatorEvaluator {
-            search1: AlphaBetaSearch::new(depth, evaluator1),
-            search2: AlphaBetaSearch::new(depth, evaluator2),
+            search1: AlphaBetaSearch::new(depth1, evaluator1),
+            search2: AlphaBetaSearch::new(depth2, evaluator2),
             timeout,
             epsilon,
             show_progress,
