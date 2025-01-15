@@ -44,8 +44,11 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         let mut rng = rand::thread_rng();
         let masks = self.masks;
         let mut weights = self.weights;
-        let index = rng.gen_range(0..N);
-        weights[index] = rng.gen_range(-10..10);
+        for w in weights.iter_mut() {
+            if rng.gen_bool(0.5) {
+                *w += rng.gen_range(-5..5);
+            }
+        }
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
     }
 
