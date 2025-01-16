@@ -3,6 +3,7 @@ use rust_reversi_core::{
     search::{BitMatrixEvaluator, Evaluator},
 };
 
+#[derive(Clone)]
 pub struct MultiBitMatrixEvaluator<const N: usize> {
     evaluators: Vec<BitMatrixEvaluator<N>>,
     evaluator_mapping: [usize; 65],
