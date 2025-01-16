@@ -1,7 +1,7 @@
 use rand::Rng;
 
-use crate::evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use crate::fitness_calculator::bitmatrix::FitnessCalculator;
+use crate::genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use crate::genetic_optimizer::OptimizerConfig;
 
 pub struct BitMatrixOptimizer<const N: usize> {
@@ -40,9 +40,9 @@ impl<const N: usize> BitMatrixOptimizer<N> {
     fn select(&self, fitnesses: Vec<f64>) -> Vec<GeneticBitMatrixEvaluator<N>> {
         let mut rng = rand::thread_rng();
         let mut selected = Vec::new();
-        for _ in 0..self.config.population_size {
-            let mut best_index = 0;
-            let mut best_fitness = 0.0;
+        for i in 0..self.config.population_size {
+            let mut best_index = i;
+            let mut best_fitness = fitnesses[i];
             for _i in 0..self.config.tournament_size {
                 let index = rng.gen_range(0..self.config.population_size);
                 if fitnesses[index] > best_fitness {
