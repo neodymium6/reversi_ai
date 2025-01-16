@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::{
     evaluators, fitness_calculator::bitmatrix::EvaluatorType,
     genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator,
@@ -31,17 +29,10 @@ impl<const N: usize> GeneticMultiBitMatrixEvaluator<N> {
 
 impl<const N: usize> GeneticEvaluator<N> for GeneticMultiBitMatrixEvaluator<N> {
     fn mutate(&self) -> GeneticMultiBitMatrixEvaluator<N> {
-        let mut rng = rand::thread_rng();
         let new_evaluators = self
             .evaluators
             .iter()
-            .map(|evaluator| {
-                if rng.gen_bool(0.5) {
-                    evaluator.mutate()
-                } else {
-                    evaluator.clone()
-                }
-            })
+            .map(|evaluator| evaluator.mutate())
             .collect();
         GeneticMultiBitMatrixEvaluator::<N>::new(new_evaluators, self.bounds.clone())
     }
