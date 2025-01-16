@@ -1,50 +1,51 @@
-use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use crate::evaluator_evaluator::EvaluatorEvaluator;
 
+use crate::evaluators::multi_bitmatrix::MultiBitMatrixEvaluator;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use rust_reversi_core::search::{
-    BitMatrixEvaluator, Evaluator, LegalNumEvaluator, MatrixEvaluator, PieceEvaluator,
-};
+use rayon::prelude::*;
+use rust_reversi_core::search::{BitMatrixEvaluator, Evaluator};
 
 #[derive(Clone)]
-pub enum EvaluatorType {
-    Piece,
-    LegalNum,
-    Matrix(MatrixEvaluator),
-    BitMatrix(BitMatrixEvaluator<10>),
+pub enum EvaluatorType<const N: usize> {
+    // Piece,
+    // LegalNum,
+    // Matrix(MatrixEvaluator),
+    BitMatrix(Box<BitMatrixEvaluator<N>>),
+    MultiBitMatrix(Box<MultiBitMatrixEvaluator<N>>),
 }
 
-impl EvaluatorType {
+impl<const N: usize> EvaluatorType<N> {
     pub fn to_evaluator(&self) -> Box<dyn Evaluator> {
         match self {
-            EvaluatorType::Piece => Box::new(PieceEvaluator::new()),
-            EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
-            EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
-            EvaluatorType::BitMatrix(evaluator) => Box::new(evaluator.clone()),
+            // EvaluatorType::Piece => Box::new(PieceEvaluator::new()),
+            // EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
+            // EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
+            EvaluatorType::BitMatrix(evaluator) => evaluator.clone(),
+            EvaluatorType::MultiBitMatrix(evaluator) => evaluator.clone(),
         }
     }
 }
 
 pub trait FitnessCalculator<const N: usize> {
-    fn calculate_fitness(&self, evaluators: Vec<BitMatrixEvaluator<N>>) -> Vec<f64>;
+    fn calculate_fitness(&self, evaluators: Vec<EvaluatorType<N>>) -> Vec<f64>;
 }
 
 #[derive(Clone)]
 pub struct SimpleFitnessCalculator<const N: usize> {
-    evaluator: EvaluatorType,
+    evaluator: EvaluatorType<N>,
 }
 
 impl<const N: usize> SimpleFitnessCalculator<N> {
-    pub fn new(evaluator: EvaluatorType) -> SimpleFitnessCalculator<N> {
+    pub fn new(evaluator: EvaluatorType<N>) -> SimpleFitnessCalculator<N> {
         SimpleFitnessCalculator { evaluator }
     }
 
-    fn vs_self(&self, evaluator: BitMatrixEvaluator<N>) -> f64 {
+    fn vs_self(&self, evaluator: Box<dyn Evaluator>) -> f64 {
         let evaluator_evaluator = EvaluatorEvaluator::new(
             self.evaluator.to_evaluator(),
-            Box::new(evaluator),
+            evaluator,
             std::time::Duration::from_millis(10),
             2,
             1,
@@ -57,7 +58,7 @@ impl<const N: usize> SimpleFitnessCalculator<N> {
 }
 
 impl<const N: usize> FitnessCalculator<N> for SimpleFitnessCalculator<N> {
-    fn calculate_fitness(&self, evaluators: Vec<BitMatrixEvaluator<N>>) -> Vec<f64> {
+    fn calculate_fitness(&self, evaluators: Vec<EvaluatorType<N>>) -> Vec<f64> {
         let pb = ProgressBar::new(evaluators.len() as u64);
         pb.set_style(
             ProgressStyle::with_template("[{wide_bar}] [{elapsed_precise}] ({eta})")
@@ -74,7 +75,7 @@ impl<const N: usize> FitnessCalculator<N> for SimpleFitnessCalculator<N> {
         evaluators
             .par_iter()
             .map(|evaluator| {
-                let fitness = self.vs_self(evaluator.clone());
+                let fitness = self.vs_self(evaluator.to_evaluator());
                 let pb = pb.lock().unwrap();
                 pb.inc(1);
                 fitness
@@ -89,7 +90,7 @@ pub struct MultiFitnessCalculator<const N: usize> {
 }
 
 impl<const N: usize> MultiFitnessCalculator<N> {
-    pub fn new(evaluators: Vec<(EvaluatorType, f64)>) -> MultiFitnessCalculator<N> {
+    pub fn new(evaluators: Vec<(EvaluatorType<N>, f64)>) -> MultiFitnessCalculator<N> {
         let fitness_calculators = evaluators
             .iter()
             .map(|evaluator| SimpleFitnessCalculator::<N>::new(evaluator.0.clone()))
@@ -103,7 +104,7 @@ impl<const N: usize> MultiFitnessCalculator<N> {
 }
 
 impl<const N: usize> FitnessCalculator<N> for MultiFitnessCalculator<N> {
-    fn calculate_fitness(&self, evaluators: Vec<BitMatrixEvaluator<N>>) -> Vec<f64> {
+    fn calculate_fitness(&self, evaluators: Vec<EvaluatorType<N>>) -> Vec<f64> {
         let pb = ProgressBar::new(evaluators.len() as u64);
         pb.set_style(
             ProgressStyle::with_template("[{wide_bar}] [{elapsed_precise}] ({eta})")
@@ -123,7 +124,7 @@ impl<const N: usize> FitnessCalculator<N> for MultiFitnessCalculator<N> {
                 let fitness = self
                     .fitness_calculators
                     .iter()
-                    .map(|fitness_calculator| fitness_calculator.vs_self(evaluator.clone()))
+                    .map(|fitness_calculator| fitness_calculator.vs_self(evaluator.to_evaluator()))
                     .zip(self.weights.iter())
                     .map(|(fitness, weight)| fitness * weight)
                     .sum();

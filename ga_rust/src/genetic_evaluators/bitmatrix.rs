@@ -1,6 +1,10 @@
 use rand::Rng;
 use rust_reversi_core::search::BitMatrixEvaluator;
 
+use crate::fitness_calculator::bitmatrix::EvaluatorType;
+
+use super::GeneticEvaluator;
+
 #[derive(Clone)]
 pub struct GeneticBitMatrixEvaluator<const N: usize> {
     masks: [u64; N],
@@ -19,7 +23,37 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         }
     }
 
-    pub fn new_from_random() -> GeneticBitMatrixEvaluator<N> {
+    pub fn to_bitmatrix_evaluator(&self) -> BitMatrixEvaluator<N> {
+        BitMatrixEvaluator::<N>::new(self.weights.to_vec(), self.masks.to_vec())
+    }
+}
+
+impl<const N: usize> GeneticEvaluator<N> for GeneticBitMatrixEvaluator<N> {
+    fn mutate(&self) -> GeneticBitMatrixEvaluator<N> {
+        let mut rng = rand::thread_rng();
+        let masks = self.masks;
+        let mut weights = self.weights;
+        for w in weights.iter_mut() {
+            if rng.gen_bool(0.5) {
+                *w += rng.gen_range(-5..5);
+            }
+        }
+        GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
+    }
+
+    fn crossover(&self, other: &GeneticBitMatrixEvaluator<N>) -> GeneticBitMatrixEvaluator<N> {
+        let mut rng = rand::thread_rng();
+        let masks = self.masks;
+        let mut weights = self.weights;
+        for (i, w) in weights.iter_mut().enumerate() {
+            if rng.gen_bool(0.5) {
+                *w = other.weights[i];
+            }
+        }
+        GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
+    }
+
+    fn new_from_random() -> Self {
         let mut rng = rand::thread_rng();
         let masks = [
             0x0000001818000000,
@@ -40,32 +74,11 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
     }
 
-    pub fn mutate(&self) -> GeneticBitMatrixEvaluator<N> {
-        let mut rng = rand::thread_rng();
-        let masks = self.masks;
-        let mut weights = self.weights;
-        for w in weights.iter_mut() {
-            if rng.gen_bool(0.5) {
-                *w += rng.gen_range(-5..5);
-            }
-        }
-        GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
-    }
-
-    pub fn crossover(&self, other: &GeneticBitMatrixEvaluator<N>) -> GeneticBitMatrixEvaluator<N> {
-        let mut rng = rand::thread_rng();
-        let masks = self.masks;
-        let mut weights = self.weights;
-        for (i, w) in weights.iter_mut().enumerate() {
-            if rng.gen_bool(0.5) {
-                *w = other.weights[i];
-            }
-        }
-        GeneticBitMatrixEvaluator::<N>::new(masks.to_vec(), weights.to_vec())
-    }
-
-    pub fn to_evaluator(&self) -> BitMatrixEvaluator<N> {
-        BitMatrixEvaluator::<N>::new(self.weights.to_vec(), self.masks.to_vec())
+    fn to_evaluator_type(&self) -> EvaluatorType<N> {
+        EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::<N>::new(
+            self.weights.to_vec(),
+            self.masks.to_vec(),
+        )))
     }
 }
 
