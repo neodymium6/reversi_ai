@@ -67,7 +67,7 @@ fn main() {
         mutation_rate: 0.2,
         crossover_rate: 0.5,
         tournament_size: 5,
-        max_generations: 10,
+        max_generations: 100,
     };
     let mut optimizer =
         genetic_optimizer::bitmatrix::BitMatrixOptimizer::new(Box::new(fitness_calculator), config);

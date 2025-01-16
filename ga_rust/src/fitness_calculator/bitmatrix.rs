@@ -46,7 +46,7 @@ impl<const N: usize> SimpleFitnessCalculator<N> {
             self.evaluator.to_evaluator(),
             Box::new(evaluator),
             std::time::Duration::from_millis(10),
-            1,
+            2,
             1,
             0.1,
             false,
