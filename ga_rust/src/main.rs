@@ -4,6 +4,8 @@ mod fitness_calculator;
 mod genetic_evaluators;
 mod genetic_optimizer;
 use fitness_calculator::bitmatrix::{EvaluatorType, MultiFitnessCalculator};
+use genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
+use genetic_optimizer::GeneticOptimizer;
 use genetic_optimizer::OptimizerConfig;
 use rust_reversi_core::search::BitMatrixEvaluator;
 fn main() {
@@ -110,7 +112,9 @@ fn main() {
         tournament_size: 15,
         max_generations: 100,
     };
-    let mut optimizer =
-        genetic_optimizer::bitmatrix::BitMatrixOptimizer::new(Box::new(fitness_calculator), config);
+    let mut optimizer = GeneticOptimizer::<10, GeneticBitMatrixEvaluator<10>>::new(
+        Box::new(fitness_calculator),
+        config,
+    );
     optimizer.optimize();
 }

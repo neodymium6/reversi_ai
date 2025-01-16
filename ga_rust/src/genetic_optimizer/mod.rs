@@ -1,5 +1,3 @@
-pub mod bitmatrix;
-
 use rand::Rng;
 
 use crate::fitness_calculator::bitmatrix::FitnessCalculator;
