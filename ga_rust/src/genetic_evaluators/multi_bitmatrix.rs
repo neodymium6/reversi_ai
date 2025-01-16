@@ -1,7 +1,10 @@
 use rand::Rng;
+use rust_reversi_core::search::Evaluator;
 
 use crate::{evaluators, genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator};
 use evaluators::multi_bitmatrix::MultiBitMatrixEvaluator;
+
+use super::GeneticEvaluator;
 
 pub struct GeneticMultiBitMatrixEvaluator<const N: usize> {
     evaluators: Vec<GeneticBitMatrixEvaluator<N>>,
@@ -22,11 +25,13 @@ impl<const N: usize> GeneticMultiBitMatrixEvaluator<N> {
         GeneticMultiBitMatrixEvaluator { evaluators, bounds }
     }
 
-    pub fn new_from_random(bounds: Vec<usize>) {
+    pub fn new_from_random() -> GeneticMultiBitMatrixEvaluator<N> {
+        let bounds = vec![20, 40];
         let mut evaluators = Vec::new();
-        for i in 0..bounds.len() - 1 {
+        for _i in 0..bounds.len() - 1 {
             evaluators.push(GeneticBitMatrixEvaluator::<N>::new_from_random());
         }
+        GeneticMultiBitMatrixEvaluator::<N>::new(evaluators, bounds)
     }
 
     pub fn mutate(&self) -> GeneticMultiBitMatrixEvaluator<N> {
@@ -65,6 +70,27 @@ impl<const N: usize> GeneticMultiBitMatrixEvaluator<N> {
             .map(|evaluator| evaluator.to_evaluator())
             .collect();
         MultiBitMatrixEvaluator::<N>::new(evaluators, self.bounds.clone())
+    }
+}
+
+impl<const N: usize> GeneticEvaluator for GeneticMultiBitMatrixEvaluator<N> {
+    fn mutate(&self) -> GeneticMultiBitMatrixEvaluator<N> {
+        self.mutate()
+    }
+
+    fn crossover(
+        &self,
+        other: &GeneticMultiBitMatrixEvaluator<N>,
+    ) -> GeneticMultiBitMatrixEvaluator<N> {
+        self.crossover(other)
+    }
+
+    fn to_evaluator(&self) -> Box<dyn Evaluator> {
+        Box::new(self.to_evaluator())
+    }
+
+    fn new_from_random() -> Self {
+        GeneticMultiBitMatrixEvaluator::<N>::new_from_random()
     }
 }
 

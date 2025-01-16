@@ -1,5 +1,7 @@
 use rand::Rng;
-use rust_reversi_core::search::BitMatrixEvaluator;
+use rust_reversi_core::search::{BitMatrixEvaluator, Evaluator};
+
+use super::GeneticEvaluator;
 
 #[derive(Clone)]
 pub struct GeneticBitMatrixEvaluator<const N: usize> {
@@ -66,6 +68,24 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
 
     pub fn to_evaluator(&self) -> BitMatrixEvaluator<N> {
         BitMatrixEvaluator::<N>::new(self.weights.to_vec(), self.masks.to_vec())
+    }
+}
+
+impl<const N: usize> GeneticEvaluator for GeneticBitMatrixEvaluator<N> {
+    fn mutate(&self) -> GeneticBitMatrixEvaluator<N> {
+        self.mutate()
+    }
+
+    fn crossover(&self, other: &GeneticBitMatrixEvaluator<N>) -> GeneticBitMatrixEvaluator<N> {
+        self.crossover(other)
+    }
+
+    fn to_evaluator(&self) -> Box<dyn Evaluator> {
+        Box::new(self.to_evaluator())
+    }
+
+    fn new_from_random() -> Self {
+        todo!()
     }
 }
 
