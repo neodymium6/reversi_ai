@@ -1,1 +1,1 @@
-mod multi_bitmatrix;
+pub mod multi_bitmatrix;
