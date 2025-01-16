@@ -86,11 +86,11 @@ impl<const N: usize> std::fmt::Debug for GeneticBitMatrixEvaluator<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut result = String::new();
         result.push_str("GeneticBitMatrixEvaluator {\n");
-        result.push_str("\tmasks: [\n");
-        for mask in self.masks.iter() {
-            result.push_str(&format!("\t\t{:x},\n", mask));
-        }
-        result.push_str("\t],\n");
+        // result.push_str("\tmasks: [\n");
+        // for mask in self.masks.iter() {
+        //     result.push_str(&format!("\t\t{:x},\n", mask));
+        // }
+        // result.push_str("\t],\n");
         result.push_str("\tweights: [\n");
         for weight in self.weights.iter() {
             result.push_str(&format!("\t\t{},\n", weight));
