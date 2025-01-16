@@ -15,7 +15,7 @@ pub enum EvaluatorType<const N: usize> {
     LegalNum,
     Matrix(MatrixEvaluator),
     BitMatrix(BitMatrixEvaluator<N>),
-    MulttBitMatrix(MultiBitMatrixEvaluator<N>),
+    MultiBitMatrix(MultiBitMatrixEvaluator<N>),
 }
 
 impl<const N: usize> EvaluatorType<N> {
@@ -25,7 +25,7 @@ impl<const N: usize> EvaluatorType<N> {
             EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
             EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
             EvaluatorType::BitMatrix(evaluator) => Box::new(evaluator.clone()),
-            EvaluatorType::MulttBitMatrix(evaluator) => Box::new(evaluator.clone()),
+            EvaluatorType::MultiBitMatrix(evaluator) => Box::new(evaluator.clone()),
         }
     }
 }
