@@ -9,7 +9,7 @@ use rust_reversi_core::board::Turn;
 use rust_reversi_core::search::AlphaBetaSearch;
 use rust_reversi_core::search::Evaluator;
 
-enum TrunOrder {
+enum TurnOrder {
     Search1IsBlack,
     Search1IsWhite,
 }
@@ -47,10 +47,10 @@ impl EvaluatorEvaluator {
         }
     }
 
-    fn play_game_with_timeout(&self, timout: Duration, turn_order: TrunOrder) -> PlayResult {
+    fn play_game_with_timeout(&self, timout: Duration, turn_order: TurnOrder) -> PlayResult {
         let search1_turn = match turn_order {
-            TrunOrder::Search1IsBlack => Turn::Black,
-            TrunOrder::Search1IsWhite => Turn::White,
+            TurnOrder::Search1IsBlack => Turn::Black,
+            TurnOrder::Search1IsWhite => Turn::White,
         };
         let mut board = Board::new();
         let mut rng = rand::thread_rng();
@@ -101,10 +101,10 @@ impl EvaluatorEvaluator {
         }
     }
 
-    fn play_game_with_depth(&self, turn_order: TrunOrder) -> PlayResult {
+    fn play_game_with_depth(&self, turn_order: TurnOrder) -> PlayResult {
         let search1_turn = match turn_order {
-            TrunOrder::Search1IsBlack => Turn::Black,
-            TrunOrder::Search1IsWhite => Turn::White,
+            TurnOrder::Search1IsBlack => Turn::Black,
+            TurnOrder::Search1IsWhite => Turn::White,
         };
         let mut board = Board::new();
         let mut rng = rand::thread_rng();
@@ -178,12 +178,12 @@ impl EvaluatorEvaluator {
             false => None,
         };
         for _ in 0..n {
-            match self.play_game_with_timeout(self.timeout, TrunOrder::Search1IsBlack) {
+            match self.play_game_with_timeout(self.timeout, TurnOrder::Search1IsBlack) {
                 PlayResult::Search1Win => search1_win += 1,
                 PlayResult::Search2Win => search2_win += 1,
                 PlayResult::Draw => draw += 1,
             }
-            match self.play_game_with_timeout(self.timeout, TrunOrder::Search1IsWhite) {
+            match self.play_game_with_timeout(self.timeout, TurnOrder::Search1IsWhite) {
                 PlayResult::Search1Win => search1_win += 1,
                 PlayResult::Search2Win => search2_win += 1,
                 PlayResult::Draw => draw += 1,
@@ -222,12 +222,12 @@ impl EvaluatorEvaluator {
         };
 
         for _ in 0..n {
-            match self.play_game_with_depth(TrunOrder::Search1IsBlack) {
+            match self.play_game_with_depth(TurnOrder::Search1IsBlack) {
                 PlayResult::Search1Win => search1_win += 1,
                 PlayResult::Search2Win => search2_win += 1,
                 PlayResult::Draw => draw += 1,
             }
-            match self.play_game_with_depth(TrunOrder::Search1IsWhite) {
+            match self.play_game_with_depth(TurnOrder::Search1IsWhite) {
                 PlayResult::Search1Win => search1_win += 1,
                 PlayResult::Search2Win => search2_win += 1,
                 PlayResult::Draw => draw += 1,
