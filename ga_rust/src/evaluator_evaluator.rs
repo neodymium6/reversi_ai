@@ -72,7 +72,7 @@ impl EvaluatorEvaluator {
                 let action = match action {
                     Some(action) => action,
                     None => {
-                        eprintln!("Unkown error");
+                        eprintln!("Unknown error");
                         println!("{}", board);
                         panic!();
                     }
@@ -83,7 +83,7 @@ impl EvaluatorEvaluator {
                 let action = match action {
                     Some(action) => action,
                     None => {
-                        eprintln!("Unkown error");
+                        eprintln!("Unknown error");
                         println!("{}", board);
                         panic!();
                     }
