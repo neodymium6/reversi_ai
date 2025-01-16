@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::evaluator_evaluator::EvaluatorEvaluator;
 
+use crate::evaluators::multi_bitmatrix::MultiBitMatrixEvaluator;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rust_reversi_core::search::{
     BitMatrixEvaluator, Evaluator, LegalNumEvaluator, MatrixEvaluator, PieceEvaluator,
@@ -14,6 +15,7 @@ pub enum EvaluatorType {
     LegalNum,
     Matrix(MatrixEvaluator),
     BitMatrix(BitMatrixEvaluator<10>),
+    MulttBitMatrix(MultiBitMatrixEvaluator<10>),
 }
 
 impl EvaluatorType {
@@ -23,6 +25,7 @@ impl EvaluatorType {
             EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
             EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
             EvaluatorType::BitMatrix(evaluator) => Box::new(evaluator.clone()),
+            EvaluatorType::MulttBitMatrix(evaluator) => Box::new(evaluator.clone()),
         }
     }
 }
