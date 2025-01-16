@@ -14,7 +14,7 @@ impl<const N: usize> MultiBitMatrixEvaluator<N> {
         evaluators: Vec<BitMatrixEvaluator<N>>,
         bounds: Vec<usize>,
     ) -> MultiBitMatrixEvaluator<N> {
-        assert_eq!(evaluators.len(), bounds.len() - 1);
+        assert_eq!(evaluators.len(), bounds.len() + 1);
         let mut current_bound = 0;
         let mut evaluator_mapping = [0; 65];
         for (i, bound) in bounds.iter().enumerate() {

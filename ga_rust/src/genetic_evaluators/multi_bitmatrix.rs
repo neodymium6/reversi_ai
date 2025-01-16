@@ -19,7 +19,7 @@ impl<const N: usize> GeneticMultiBitMatrixEvaluator<N> {
         evaluators: Vec<GeneticBitMatrixEvaluator<N>>,
         bounds: Vec<usize>,
     ) -> GeneticMultiBitMatrixEvaluator<N> {
-        assert_eq!(evaluators.len(), bounds.len() - 1);
+        assert_eq!(evaluators.len(), bounds.len() + 1);
         let mut current_bound = 0;
         for bound in bounds.iter() {
             assert!(current_bound < *bound && *bound < 64);
@@ -62,7 +62,7 @@ impl<const N: usize> GeneticEvaluator<N> for GeneticMultiBitMatrixEvaluator<N> {
     fn new_from_random() -> Self {
         let bounds = vec![20, 40];
         let mut evaluators = Vec::new();
-        for _i in 0..bounds.len() - 1 {
+        for _i in 0..bounds.len() + 1 {
             evaluators.push(GeneticBitMatrixEvaluator::<N>::new_from_random());
         }
         GeneticMultiBitMatrixEvaluator::<N>::new(evaluators, bounds)
