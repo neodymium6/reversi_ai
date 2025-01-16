@@ -32,7 +32,7 @@ impl<const N: usize> BitMatrixOptimizer<N> {
         let evaluators = self
             .population
             .iter()
-            .map(|evaluator| EvaluatorType::BitMatrix(evaluator.to_evaluator()))
+            .map(|evaluator| EvaluatorType::BitMatrix(Box::new(evaluator.to_evaluator())))
             .collect::<Vec<_>>();
         self.fitness_calculator.calculate_fitness(evaluators)
     }

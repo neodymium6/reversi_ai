@@ -5,27 +5,25 @@ use crate::evaluator_evaluator::EvaluatorEvaluator;
 use crate::evaluators::multi_bitmatrix::MultiBitMatrixEvaluator;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rayon::prelude::*;
-use rust_reversi_core::search::{
-    BitMatrixEvaluator, Evaluator, LegalNumEvaluator, MatrixEvaluator, PieceEvaluator,
-};
+use rust_reversi_core::search::{BitMatrixEvaluator, Evaluator};
 
 #[derive(Clone)]
 pub enum EvaluatorType<const N: usize> {
-    Piece,
-    LegalNum,
-    Matrix(MatrixEvaluator),
-    BitMatrix(BitMatrixEvaluator<N>),
-    MultiBitMatrix(MultiBitMatrixEvaluator<N>),
+    // Piece,
+    // LegalNum,
+    // Matrix(MatrixEvaluator),
+    BitMatrix(Box<BitMatrixEvaluator<N>>),
+    MultiBitMatrix(Box<MultiBitMatrixEvaluator<N>>),
 }
 
 impl<const N: usize> EvaluatorType<N> {
     pub fn to_evaluator(&self) -> Box<dyn Evaluator> {
         match self {
-            EvaluatorType::Piece => Box::new(PieceEvaluator::new()),
-            EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
-            EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
-            EvaluatorType::BitMatrix(evaluator) => Box::new(evaluator.clone()),
-            EvaluatorType::MultiBitMatrix(evaluator) => Box::new(evaluator.clone()),
+            // EvaluatorType::Piece => Box::new(PieceEvaluator::new()),
+            // EvaluatorType::LegalNum => Box::new(LegalNumEvaluator::new()),
+            // EvaluatorType::Matrix(evaluator) => Box::new(evaluator.clone()),
+            EvaluatorType::BitMatrix(evaluator) => evaluator.clone(),
+            EvaluatorType::MultiBitMatrix(evaluator) => evaluator.clone(),
         }
     }
 }

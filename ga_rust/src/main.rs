@@ -93,7 +93,7 @@ fn main() {
     let evaluator_vec: Vec<EvaluatorType<10>> = evaluators
         .into_iter()
         .map(|weights| {
-            EvaluatorType::BitMatrix(BitMatrixEvaluator::<10>::new(weights, masks.clone()))
+            EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::new(weights, masks.clone())))
         })
         .collect();
     let fitness_calculator = MultiFitnessCalculator::<10>::new(
