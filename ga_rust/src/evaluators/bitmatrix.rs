@@ -58,8 +58,6 @@ impl<const N: usize> GeneticBitMatrixEvaluator<N> {
         let mut weights = self.weights;
         for (i, w) in weights.iter_mut().enumerate() {
             if rng.gen_bool(0.5) {
-                *w = (self.weights[i] + other.weights[i]) / 2;
-            } else if rng.gen_bool(0.5) {
                 *w = other.weights[i];
             }
         }
