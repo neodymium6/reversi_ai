@@ -4,7 +4,6 @@ mod fitness_calculator;
 mod genetic_evaluators;
 mod genetic_optimizer;
 use fitness_calculator::bitmatrix::{EvaluatorType, MultiFitnessCalculator};
-use genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use genetic_evaluators::multi_bitmatrix::GeneticMultiBitMatrixEvaluator;
 use genetic_optimizer::GeneticOptimizer;
 use genetic_optimizer::OptimizerConfig;
@@ -107,7 +106,7 @@ fn main() {
             .collect(),
     );
     let config = OptimizerConfig {
-        population_size: 30,
+        population_size: 300,
         mutation_rate: 0.2,
         crossover_rate: 0.5,
         tournament_size: 15,
