@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::fitness_calculator::bitmatrix::FitnessCalculator;
+use crate::fitness_calculator::bitmatrix::{EvaluatorType, FitnessCalculator};
 use crate::genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use crate::genetic_optimizer::OptimizerConfig;
 
@@ -32,7 +32,7 @@ impl<const N: usize> BitMatrixOptimizer<N> {
         let evaluators = self
             .population
             .iter()
-            .map(|evaluator| evaluator.to_evaluator())
+            .map(|evaluator| EvaluatorType::BitMatrix(evaluator.to_evaluator()))
             .collect::<Vec<_>>();
         self.fitness_calculator.calculate_fitness(evaluators)
     }

@@ -90,7 +90,7 @@ fn main() {
         0.01, // 19. 非対称A
         0.01, // 20. 非対称B
     ];
-    let evaluator_vec: Vec<EvaluatorType> = evaluators
+    let evaluator_vec: Vec<EvaluatorType<10>> = evaluators
         .into_iter()
         .map(|weights| {
             EvaluatorType::BitMatrix(BitMatrixEvaluator::<10>::new(weights, masks.clone()))
