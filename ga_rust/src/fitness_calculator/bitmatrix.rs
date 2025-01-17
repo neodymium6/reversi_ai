@@ -28,6 +28,15 @@ impl<const N: usize> EvaluatorType<N> {
     }
 }
 
+impl<const N: usize> Default for EvaluatorType<N> {
+    fn default() -> Self {
+        EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::<N>::new(
+            vec![0; N],
+            vec![0; N],
+        )))
+    }
+}
+
 pub trait FitnessCalculator<const N: usize> {
     fn calculate_fitness(&self, evaluators: Vec<EvaluatorType<N>>) -> Vec<f64>;
 }

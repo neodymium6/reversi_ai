@@ -1,4 +1,5 @@
 mod evaluator_evaluator;
+mod evaluator_pool;
 mod evaluators;
 mod fitness_calculator;
 mod genetic_evaluators;
