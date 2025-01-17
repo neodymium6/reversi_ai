@@ -4,34 +4,13 @@ mod evaluators;
 mod fitness_calculator;
 mod genetic_evaluators;
 mod genetic_optimizer;
+use evaluator_pool::RankedEvaluatorPool;
 use fitness_calculator::bitmatrix::{EvaluatorType, MultiFitnessCalculator};
 use genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
 use genetic_evaluators::GeneticEvaluator;
 use genetic_optimizer::GeneticOptimizer;
 use genetic_optimizer::OptimizerConfig;
 use rust_reversi_core::search::BitMatrixEvaluator;
-use std::collections::VecDeque;
-
-struct BoundedQueue<T> {
-    queue: VecDeque<T>,
-    capacity: usize,
-}
-
-impl<T> BoundedQueue<T> {
-    fn new(capacity: usize) -> Self {
-        BoundedQueue {
-            queue: VecDeque::with_capacity(capacity),
-            capacity,
-        }
-    }
-
-    fn push(&mut self, item: T) {
-        if self.queue.len() >= self.capacity {
-            self.queue.pop_back();
-        }
-        self.queue.push_front(item);
-    }
-}
 
 fn main() {
     let masks: Vec<u64> = vec![
@@ -95,35 +74,31 @@ fn main() {
         vec![-2, 0, 1, -1, -4, -8, 7, 5, 3, 24],
     ];
 
-    let capacity = 20;
-
     let evaluator_vec: Vec<EvaluatorType<10>> = evaluators
         .into_iter()
         .map(|weights| {
             EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::new(weights, masks.clone())))
         })
         .collect();
-    let mut evaluator_que = BoundedQueue::new(capacity);
-    for evaluator in evaluator_vec.iter() {
-        evaluator_que.push(evaluator.clone());
-    }
+    let mut evaluator_pool = RankedEvaluatorPool::<10, 20>::new(evaluator_vec);
 
     let config = OptimizerConfig {
         population_size: 100,
         mutation_rate: 0.5,
         crossover_rate: 0.5,
-        tournament_size: 15,
-        max_generations: 3,
+        tournament_size: 5,
+        max_generations: 100,
         early_stop_fitness: 0.53,
     };
 
     let max_loop = 100;
     for _ in 0..max_loop {
+        let e_weights = evaluator_pool.get_weights();
         let fitness_calculator = MultiFitnessCalculator::<10>::new(
-            evaluator_que
-                .queue
+            evaluator_pool
                 .iter()
-                .map(|evaluator| (evaluator.clone(), 1. / capacity as f64))
+                .zip(e_weights.iter())
+                .map(|(eval, weight)| (eval.to_evaluator_type(), *weight))
                 .collect(),
         );
         let mut optimizer = GeneticOptimizer::<10, GeneticBitMatrixEvaluator<10>>::new(
@@ -131,6 +106,6 @@ fn main() {
             config,
         );
         let best_evaluator = optimizer.optimize();
-        evaluator_que.push(best_evaluator.to_evaluator_type());
+        evaluator_pool.push(best_evaluator.to_evaluator_type());
     }
 }

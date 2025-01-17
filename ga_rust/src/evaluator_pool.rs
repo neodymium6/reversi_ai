@@ -6,7 +6,7 @@ use crate::evaluator_evaluator::EvaluatorEvaluator;
 use crate::fitness_calculator::bitmatrix::EvaluatorType;
 
 #[derive(Clone)]
-struct RankedEvaluator<const N: usize> {
+pub struct RankedEvaluator<const N: usize> {
     evaluator: EvaluatorType<N>,
     id: usize,
     rank_score: f64,
@@ -23,6 +23,10 @@ impl<const N: usize> RankedEvaluator<N> {
 
     fn to_evaluator(&self) -> Box<dyn Evaluator> {
         self.evaluator.to_evaluator()
+    }
+
+    pub fn to_evaluator_type(&self) -> EvaluatorType<N> {
+        self.evaluator.clone()
     }
 }
 
@@ -59,6 +63,22 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
         instance
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &RankedEvaluator<N>> {
+        self.pool.iter()
+    }
+
+    pub fn get_weights(&self) -> [f64; C] {
+        let mut weights = [0.0; C];
+        let mut sum = 0.0;
+        let variety_factor = 0.5; // smaller -> more preference for weak evaluator
+        self.iter().enumerate().for_each(|(i, e)| {
+            weights[i] = e.rank_score.powf(variety_factor);
+            sum += weights[i];
+        });
+        weights.iter_mut().for_each(|w| *w /= sum);
+        weights
+    }
+
     fn game_play_cached(
         &mut self,
         id1: usize,
@@ -91,7 +111,7 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
     pub fn push(&mut self, evaluator: EvaluatorType<N>) {
         let new_id = self.next_id;
         self.next_id += 1;
-        let rank_score = 0.0;
+        let rank_score = 1.0;
         let mut new_evaluator = RankedEvaluator::new(evaluator, new_id, rank_score);
         if !self.is_full {
             self.pool[new_id] = new_evaluator;
@@ -133,16 +153,24 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
             );
             new_evaluator.rank_score += score_new;
 
+            // normalize
+            self.pool[i].rank_score /= C as f64;
+
             if self.pool[i].rank_score < self.pool[min_idx].rank_score {
                 min_idx = i;
             }
         }
+        // normalize
+        new_evaluator.rank_score /= C as f64;
+
         if self.pool[min_idx].rank_score < new_evaluator.rank_score {
             // new is better than min -> replace
             self.cache_clean_up(self.pool[min_idx].id);
             self.pool[min_idx] = new_evaluator;
+            println!("evaluator_pool: replace evaluator {}", min_idx);
         } else {
             self.cache_clean_up(new_id);
+            println!("evaluator_pool: new evaluator is not good enough");
         }
     }
 }
