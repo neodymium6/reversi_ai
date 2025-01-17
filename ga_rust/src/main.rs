@@ -4,10 +4,34 @@ mod fitness_calculator;
 mod genetic_evaluators;
 mod genetic_optimizer;
 use fitness_calculator::bitmatrix::{EvaluatorType, MultiFitnessCalculator};
-use genetic_evaluators::multi_bitmatrix::GeneticMultiBitMatrixEvaluator;
+use genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
+use genetic_evaluators::GeneticEvaluator;
 use genetic_optimizer::GeneticOptimizer;
 use genetic_optimizer::OptimizerConfig;
 use rust_reversi_core::search::BitMatrixEvaluator;
+use std::collections::VecDeque;
+
+struct BoundedQueue<T> {
+    queue: VecDeque<T>,
+    capacity: usize,
+}
+
+impl<T> BoundedQueue<T> {
+    fn new(capacity: usize) -> Self {
+        BoundedQueue {
+            queue: VecDeque::with_capacity(capacity),
+            capacity,
+        }
+    }
+
+    fn push(&mut self, item: T) {
+        if self.queue.len() >= self.capacity {
+            self.queue.pop_back();
+        }
+        self.queue.push_front(item);
+    }
+}
+
 fn main() {
     let masks: Vec<u64> = vec![
         0x0000001818000000,
@@ -70,51 +94,42 @@ fn main() {
         vec![-2, 0, 1, -1, -4, -8, 7, 5, 3, 24],
     ];
 
-    let weights = [
-        0.10, // 1. 現在最強
-        0.09, // 2. 最強微調整A
-        0.09, // 3. 最強微調整B
-        0.07, // 4. 堅実バランスA
-        0.07, // 5. 堅実バランスB
-        0.07, // 6. 堅実バランスC
-        0.06, // 7. 外周型A
-        0.06, // 8. 外周型B
-        0.06, // 9. 外周型C
-        0.05, // 10. 中盤抑制A
-        0.05, // 11. 中盤抑制B
-        0.05, // 12. 中盤抑制C
-        0.04, // 13. ハイブリッドA
-        0.04, // 14. ハイブリッドB
-        0.04, // 15. ハイブリッドC
-        0.02, // 16. 攻撃重視
-        0.01, // 17. 防御重視
-        0.01, // 18. エッジ支配
-        0.01, // 19. 非対称A
-        0.01, // 20. 非対称B
-    ];
+    let capacity = 20;
+
     let evaluator_vec: Vec<EvaluatorType<10>> = evaluators
         .into_iter()
         .map(|weights| {
             EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::new(weights, masks.clone())))
         })
         .collect();
-    let fitness_calculator = MultiFitnessCalculator::<10>::new(
-        evaluator_vec
-            .iter()
-            .enumerate()
-            .map(|(i, evaluator)| (evaluator.clone(), weights[i]))
-            .collect(),
-    );
+    let mut evaluator_que = BoundedQueue::new(capacity);
+    for evaluator in evaluator_vec.iter() {
+        evaluator_que.push(evaluator.clone());
+    }
+
     let config = OptimizerConfig {
-        population_size: 300,
-        mutation_rate: 0.2,
+        population_size: 100,
+        mutation_rate: 0.5,
         crossover_rate: 0.5,
         tournament_size: 15,
-        max_generations: 100,
+        max_generations: 3,
+        early_stop_fitness: 0.53,
     };
-    let mut optimizer = GeneticOptimizer::<10, GeneticMultiBitMatrixEvaluator<10>>::new(
-        Box::new(fitness_calculator),
-        config,
-    );
-    optimizer.optimize();
+
+    let max_loop = 100;
+    for _ in 0..max_loop {
+        let fitness_calculator = MultiFitnessCalculator::<10>::new(
+            evaluator_que
+                .queue
+                .iter()
+                .map(|evaluator| (evaluator.clone(), 1. / capacity as f64))
+                .collect(),
+        );
+        let mut optimizer = GeneticOptimizer::<10, GeneticBitMatrixEvaluator<10>>::new(
+            Box::new(fitness_calculator),
+            config,
+        );
+        let best_evaluator = optimizer.optimize();
+        evaluator_que.push(best_evaluator.to_evaluator_type());
+    }
 }

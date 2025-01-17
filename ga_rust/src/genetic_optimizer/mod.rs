@@ -3,12 +3,14 @@ use rand::Rng;
 use crate::fitness_calculator::bitmatrix::FitnessCalculator;
 use crate::genetic_evaluators::GeneticEvaluator;
 
+#[derive(Clone, Copy)]
 pub struct OptimizerConfig {
     pub population_size: usize,
     pub max_generations: usize,
     pub tournament_size: usize,
     pub mutation_rate: f64,
     pub crossover_rate: f64,
+    pub early_stop_fitness: f64,
 }
 
 pub struct GeneticOptimizer<const N: usize, GE: GeneticEvaluator<N>> {
@@ -104,6 +106,11 @@ impl<const N: usize, GE: GeneticEvaluator<N>> GeneticOptimizer<N, GE> {
                 self.generation, best_fitness
             );
             println!("Best Individual: {:?}", self.population[best_index]);
+
+            if best_fitness >= self.config.early_stop_fitness {
+                break;
+            }
+
             self.evolve(fitnesses);
             self.generation += 1;
         }
