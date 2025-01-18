@@ -7,7 +7,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rayon::prelude::*;
 use rust_reversi_core::search::{BitMatrixEvaluator, Evaluator};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EvaluatorType<const N: usize> {
     // Piece,
     // LegalNum,

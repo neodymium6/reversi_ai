@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use rust_reversi_core::{
     board::Board,
     search::{BitMatrixEvaluator, Evaluator},
@@ -27,6 +29,16 @@ impl<const N: usize> MultiBitMatrixEvaluator<N> {
             evaluators,
             evaluator_mapping,
         }
+    }
+}
+
+impl<const N: usize> Debug for MultiBitMatrixEvaluator<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MultiBitMatrixEvaluator")?;
+        for evaluator in &self.evaluators {
+            write!(f, "{:?}", evaluator)?;
+        }
+        Ok(())
     }
 }
 
