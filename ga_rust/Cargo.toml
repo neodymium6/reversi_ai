@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rust_reversi_core = "0.1.6"
+rust_reversi_core = "0.1.8"
 rand = "0.8.5"
 indicatif = "0.17.9"
 rayon = "1.10.0"

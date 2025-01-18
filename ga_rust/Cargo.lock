@@ -223,9 +223,9 @@ dependencies = [
 
 [[package]]
 name = "rust_reversi_core"
-version = "0.1.6"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8db233aa010663475403247c2bbfcb9c4d71775a8c4ffd0a607bb3edb6b988f"
+checksum = "5cf25e311f8134f1880f7721eee5f0f24cfbcd982b77e260e75f1c37996855f1"
 dependencies = [
  "indicatif",
  "rand",
