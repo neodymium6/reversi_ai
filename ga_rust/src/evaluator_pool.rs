@@ -5,7 +5,7 @@ use rust_reversi_core::search::Evaluator;
 use crate::evaluator_evaluator::EvaluatorEvaluator;
 use crate::fitness_calculator::bitmatrix::EvaluatorType;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RankedEvaluator<const N: usize> {
     evaluator: EvaluatorType<N>,
     id: usize,
@@ -121,6 +121,7 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
             return;
         }
         let mut min_idx = 0;
+        let mut max_idx = 0;
         // rank score means the sum of win rate against others in the pool and new
         for i in 0..C {
             self.pool[i].rank_score = 0.0;
@@ -159,9 +160,19 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
             if self.pool[i].rank_score < self.pool[min_idx].rank_score {
                 min_idx = i;
             }
+            if self.pool[i].rank_score > self.pool[max_idx].rank_score {
+                max_idx = i;
+            }
         }
         // normalize
         new_evaluator.rank_score /= C as f64;
+
+        if self.pool[max_idx].rank_score < new_evaluator.rank_score {
+            println!("the strongest evaluator: {:?}", new_evaluator);
+            println!("evaluator_pool: new evaluator is the strongest");
+        } else {
+            println!("the strongest evaluator: {:?}", self.pool[max_idx]);
+        }
 
         if self.pool[min_idx].rank_score < new_evaluator.rank_score {
             // new is better than min -> replace
