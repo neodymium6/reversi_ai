@@ -92,7 +92,8 @@ fn main() {
     };
 
     let max_loop = 100;
-    for _ in 0..max_loop {
+    for i in 0..max_loop {
+        println!("loop: {}", i);
         let e_weights = evaluator_pool.get_weights();
         let fitness_calculator = MultiFitnessCalculator::<10>::new(
             evaluator_pool
