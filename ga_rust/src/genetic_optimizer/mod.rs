@@ -105,7 +105,7 @@ impl<const N: usize, GE: GeneticEvaluator<N>> GeneticOptimizer<N, GE> {
                 "Generation: {}, Best Fitness: {}",
                 self.generation, best_fitness
             );
-            println!("Best Individual: {:?}", self.population[best_index]);
+            // println!("Best Individual: {:?}", self.population[best_index]);
 
             if best_fitness >= self.config.early_stop_fitness {
                 break;

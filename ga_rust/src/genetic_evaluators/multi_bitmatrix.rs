@@ -3,6 +3,7 @@ use crate::{
     genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator,
 };
 use evaluators::multi_bitmatrix::MultiBitMatrixEvaluator;
+use rand::Rng;
 
 use super::GeneticEvaluator;
 
@@ -29,10 +30,14 @@ impl<const N: usize> GeneticMultiBitMatrixEvaluator<N> {
 
 impl<const N: usize> GeneticEvaluator<N> for GeneticMultiBitMatrixEvaluator<N> {
     fn mutate(&self) -> GeneticMultiBitMatrixEvaluator<N> {
+        let mut rng = rand::thread_rng();
         let new_evaluators = self
             .evaluators
             .iter()
-            .map(|evaluator| evaluator.mutate())
+            .map(|evaluator| match rng.gen_bool(0.5) {
+                true => evaluator.mutate(),
+                false => evaluator.clone(),
+            })
             .collect();
         GeneticMultiBitMatrixEvaluator::<N>::new(new_evaluators, self.bounds.clone())
     }
@@ -51,7 +56,7 @@ impl<const N: usize> GeneticEvaluator<N> for GeneticMultiBitMatrixEvaluator<N> {
     }
 
     fn new_from_random() -> Self {
-        let bounds = vec![20, 40];
+        let bounds = vec![20, 35, 50];
         let mut evaluators = Vec::new();
         for _i in 0..bounds.len() + 1 {
             evaluators.push(GeneticBitMatrixEvaluator::<N>::new_from_random());

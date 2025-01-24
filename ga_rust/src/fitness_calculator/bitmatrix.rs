@@ -61,7 +61,7 @@ impl<const N: usize> SimpleFitnessCalculator<N> {
             0.1,
             false,
         );
-        let (_self_score, arg_score) = evaluator_evaluator.eval_with_depth(100);
+        let (_self_score, arg_score) = evaluator_evaluator.eval_with_depth(20);
         arg_score
     }
 }

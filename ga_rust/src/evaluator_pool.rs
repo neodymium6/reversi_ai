@@ -168,10 +168,10 @@ impl<const N: usize, const C: usize> RankedEvaluatorPool<N, C> {
         new_evaluator.rank_score /= C as f64;
 
         if self.pool[max_idx].rank_score < new_evaluator.rank_score {
-            println!("the strongest evaluator: {:?}", new_evaluator);
+            println!("the strongest evaluator: {:#?}", new_evaluator);
             println!("evaluator_pool: new evaluator is the strongest");
         } else {
-            println!("the strongest evaluator: {:?}", self.pool[max_idx]);
+            println!("the strongest evaluator: {:#?}", self.pool[max_idx]);
         }
 
         if self.pool[min_idx].rank_score < new_evaluator.rank_score {

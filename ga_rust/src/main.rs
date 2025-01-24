@@ -6,7 +6,7 @@ mod genetic_evaluators;
 mod genetic_optimizer;
 use evaluator_pool::RankedEvaluatorPool;
 use fitness_calculator::bitmatrix::{EvaluatorType, MultiFitnessCalculator};
-use genetic_evaluators::bitmatrix::GeneticBitMatrixEvaluator;
+use genetic_evaluators::multi_bitmatrix::GeneticMultiBitMatrixEvaluator;
 use genetic_evaluators::GeneticEvaluator;
 use genetic_optimizer::GeneticOptimizer;
 use genetic_optimizer::OptimizerConfig;
@@ -29,16 +29,27 @@ fn main() {
         // === コアパターングループ（洗練された成功パターン） ===
         // 1. 現在の最強パターン（基準）
         vec![-3, 1, 1, -1, -5, -8, 8, 4, 2, 26],
+        vec![-3, 1, 1, -1, -5, -8, 8, 4, 2, 26],
+        vec![-3, 1, 1, -1, -5, -8, 8, 4, 2, 26],
         // 2. 現在の最強パターン微調整A（より安定化）
         vec![-3, 1, 1, -2, -5, -8, 7, 4, 2, 25],
+        vec![-3, 1, 1, -2, -5, -8, 7, 4, 2, 25],
+        vec![-3, 1, 1, -2, -5, -8, 7, 4, 2, 25],
         // 3. 現在の最強パターン微調整B（外周強化）
+        vec![-3, 1, 1, -1, -5, -8, 8, 5, 3, 24],
+        vec![-3, 1, 1, -1, -5, -8, 8, 5, 3, 24],
         vec![-3, 1, 1, -1, -5, -8, 8, 5, 3, 24],
         // === バランス重視グループ（安定性向上） ===
         // 4. 堅実バランス型A
         vec![-2, 1, 1, -2, -4, -7, 6, 3, 1, 22],
+        vec![-2, 1, 1, -2, -4, -7, 6, 3, 1, 22],
+        vec![-2, 1, 1, -2, -4, -7, 6, 3, 1, 22],
         // 5. 堅実バランス型B
         vec![-2, 0, 1, -1, -4, -7, 7, 4, 2, 23],
+        vec![-2, 0, 1, -1, -4, -7, 7, 4, 2, 23],
+        vec![-2, 0, 1, -1, -4, -7, 7, 4, 2, 23],
         // 6. 堅実バランス型C（55位パターン発展）
+        vec![-1, 1, 0, -2, -4, -8, 5, 3, 1, 21],
         vec![-1, 1, 0, -2, -4, -8, 5, 3, 1, 21],
         // === 外周特化グループ（より洗練された外周戦略） ===
         // 7. 洗練外周型A
@@ -80,15 +91,15 @@ fn main() {
             EvaluatorType::BitMatrix(Box::new(BitMatrixEvaluator::new(weights, masks.clone())))
         })
         .collect();
-    let mut evaluator_pool = RankedEvaluatorPool::<10, 20>::new(evaluator_vec);
+    let mut evaluator_pool = RankedEvaluatorPool::<10, 30>::new(evaluator_vec);
 
     let config = OptimizerConfig {
-        population_size: 100,
+        population_size: 500,
         mutation_rate: 0.5,
         crossover_rate: 0.5,
-        tournament_size: 5,
+        tournament_size: 25,
         max_generations: 100,
-        early_stop_fitness: 0.53,
+        early_stop_fitness: 0.80,
     };
 
     let max_loop = 100;
@@ -102,7 +113,7 @@ fn main() {
                 .map(|(eval, weight)| (eval.to_evaluator_type(), *weight))
                 .collect(),
         );
-        let mut optimizer = GeneticOptimizer::<10, GeneticBitMatrixEvaluator<10>>::new(
+        let mut optimizer = GeneticOptimizer::<10, GeneticMultiBitMatrixEvaluator<10>>::new(
             Box::new(fitness_calculator),
             config,
         );
