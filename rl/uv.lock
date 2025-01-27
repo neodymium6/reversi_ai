@@ -5,3 +5,37 @@ requires-python = ">=3.13"
 name = "rl"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "rust-reversi" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "rust-reversi", specifier = ">=1.4.1" }]
+
+[[package]]
+name = "rust-reversi"
+version = "1.4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/71/b2851ce89ab16c15aa32d78140b125089c15a992b8bce2b6ac29039c9242/rust_reversi-1.4.1.tar.gz", hash = "sha256:d97e63e22b70cb99e96b831314d4a6fc0562010d78b0ec5867459a8372cdd8de", size = 44452 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/4e/cf1c71b9932aad9ab91d2aebce340bd9affd65be1f1cd50067303817d673/rust_reversi-1.4.1-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:dca79bb907153a52fbc6943feca1a95769fab009d02e50c245c8966fbca95bfb", size = 522410 },
+    { url = "https://files.pythonhosted.org/packages/d3/bb/6fb9154fe2d3e1722fbb4594ab631ff40e016dce61e6815d9197862bcadd/rust_reversi-1.4.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:649e9edc3f3c35806e937ccdda6e02f0e3628d2d388aff4fe15a89211f17e45c", size = 507068 },
+    { url = "https://files.pythonhosted.org/packages/7d/22/ad975bee6de6888b05f8d5a3cbecb4b5d21252617b9a578dc9488a3c3034/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bcff32559c3ddd061ff984b1b10ce8db00c84115e236988f35bc13c3c9383c5c", size = 559478 },
+    { url = "https://files.pythonhosted.org/packages/40/3c/9223d78cba01bb1f802842e212ef62c3ec531e9dd0f7eeed6a76749118c4/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:d77e955349c1f824f5fff2b6b7a002537b963b7243704a38217693d61e868b95", size = 577874 },
+    { url = "https://files.pythonhosted.org/packages/89/5b/41c09a6fe380444c40873b255e3762a4a522ce6eeee7749c3da3c216c493/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c824b3b1984712139c230586ff578be14ecf3ae5359d83f3a52ca9704116648f", size = 608425 },
+    { url = "https://files.pythonhosted.org/packages/61/4a/7f7a7c1e9a077bbaf2191e3a439b6a3cf756224c7d230f5650377942bda5/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:5fe88d1cd8af53f03594261483edea22fb1e36a225b1a94b077b6e01fe451081", size = 625381 },
+    { url = "https://files.pythonhosted.org/packages/d8/c9/4cb87e3555cc8a346e01aa902d7a83b3dbd137d00684f078644a936c2404/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:dd65e8714f7c3f5157d67027199ddac938a8125bae5f16a56a0a92c8d36f0a2f", size = 642252 },
+    { url = "https://files.pythonhosted.org/packages/03/67/d0d9e1f4df9d1c4b46b27b70c364229d7c7ec4a8605e70dd43c9419c8b8a/rust_reversi-1.4.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e150c2c5cf905c9aab36a7e8fff095da3760037de7041f6cf09da8bd4cbbd8e4", size = 568253 },
+    { url = "https://files.pythonhosted.org/packages/a8/53/3f713b6b62a40c1d4a471f476d63efb19a0bc410e18838c3682f290d1761/rust_reversi-1.4.1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:627ce3b01ba7036874abc15f3bcf2581e4cb898665b6c849be69e21141415426", size = 719247 },
+    { url = "https://files.pythonhosted.org/packages/54/6e/0cae7dd8249b87d389e8f570903c3cb582c69cfc793495f83f8aec3a4ca3/rust_reversi-1.4.1-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:bc6d270126751d5292554f83b367dd054eb5e1324db8bb1002d03cdb73ed0010", size = 824332 },
+    { url = "https://files.pythonhosted.org/packages/71/60/721012af3367e35f348bb15682df6ca1423e076829a15bf25ad3ad28e446/rust_reversi-1.4.1-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:a0c0f060485f5ee3cc4c83eebbf29a94335ba1cb819d70cda797779bd81714c5", size = 756816 },
+    { url = "https://files.pythonhosted.org/packages/a6/b7/24b605afd33b7978952122a6e83013e9bd9a86270edf0867f34f769cff3b/rust_reversi-1.4.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:7b3de71b4fc18f53bb4ffde53b3566089fed3a6758ce28eda2d197d8dcd838fe", size = 725916 },
+    { url = "https://files.pythonhosted.org/packages/54/24/1420491b1ab98f44465c5702abffdd050d91cf4027368c7450237192b8c7/rust_reversi-1.4.1-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a43ce4fcd618beb50a69b3915cd675ff1b9462664c0a653a2c5a998738965367", size = 557881 },
+    { url = "https://files.pythonhosted.org/packages/11/72/152afc86b2a544ac63d0b5fd7ff1b1a906b9258f0cd1d1f0de3ceb431e5a/rust_reversi-1.4.1-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:8666fed91bd385cd12dbc8433b8d9ceda88db9324d256c20d5f23d5e77fe30b9", size = 576041 },
+    { url = "https://files.pythonhosted.org/packages/a4/b6/f92f988e3cd031d3c506ab6572084f576c50a980fe46caa4c3d127dc3ab3/rust_reversi-1.4.1-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:e304bb6d5094a40eb531d98a084a8f5d3be3c3b92a0a942b9f1e9011cfc36b7d", size = 624168 },
+    { url = "https://files.pythonhosted.org/packages/28/70/b0293c6fd05eb24602a2118fda1f09d51f2162585725e7a443e68efc638c/rust_reversi-1.4.1-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:0e6f9697808a447386f2c58170aa49dff335a244cd19a6294ffc9b8cb910818d", size = 644265 },
+    { url = "https://files.pythonhosted.org/packages/53/27/fb2a47df13ff6458cd6373e56303dcdb4a837ef97153394419c317657abe/rust_reversi-1.4.1-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:981e5a625c372885b2f0f3afd7cf0c4b25da737813f0c1092ffece816a76f88a", size = 717225 },
+    { url = "https://files.pythonhosted.org/packages/20/a3/2d3059fb500cca6161da2b14da4fb997a2193b0b074535bef28e0e81006a/rust_reversi-1.4.1-cp313-cp313t-musllinux_1_2_armv7l.whl", hash = "sha256:c53ca7e7cf616aa125b4e72915ef4d50fed215e7a2c1beb64b6b369e21cfeed6", size = 823107 },
+    { url = "https://files.pythonhosted.org/packages/5f/2e/ea655a7708b30d7670e0dee3476f296f06b90e64cc51ad39f0a3d6d03763/rust_reversi-1.4.1-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:2e427a28e734260b255b773618fe9f6768cf17ff48fa5547d600c4ccd3b37694", size = 755272 },
+    { url = "https://files.pythonhosted.org/packages/a4/87/3aafac20d9d869f47fd4fed91eac187580d61092253e675add7f14cc5209/rust_reversi-1.4.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:702a6f5d70da46e9558246a498c1eef9e46ac13e4892619da96dc0e2e3539c35", size = 725162 },
+]
