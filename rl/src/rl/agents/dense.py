@@ -5,12 +5,15 @@ from rl.models.dense import DenseNet
 from typing import List, TypedDict
 import torch
 import torchinfo
+import random
 
 class DenseAgentConfig(TypedDict):
     memory_size: int
     hidden_size: int
     batch_size: int
     device: torch.device
+    eps_start: float
+    eps_end: float
     verbose: bool
 
 
@@ -38,7 +41,10 @@ class DenseAgent(Agent):
                 res[i + 64] = 1.0
         return res
 
-    def get_action(self, board: Board) -> int:
+    def get_action(self, board: Board, progress: float) -> int:
+        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * progress
+        if random.random() < epsilon:
+            return random.choice(board.get_legal_moves_vec())
         board_tensor = self.board_to_input(board)
         board_tensor = board_tensor.to(self.config["device"])
         with torch.no_grad():

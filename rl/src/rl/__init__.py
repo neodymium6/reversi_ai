@@ -11,9 +11,11 @@ def main():
         hidden_size=256,
         batch_size=BATCH_SIZE,
         device=DEVICE,
+        eps_start=0.9,
+        eps_end=0.05,
         verbose=True,
     )
     agent = DenseAgent(config)
     board = Board()
-    action = agent.get_action(board)
+    action = agent.get_action(board, 0.0)
     print(action)
