@@ -7,6 +7,7 @@ import torch
 import torchinfo
 import random
 import tqdm
+import numpy as np
 
 class DenseAgentConfig(TypedDict):
     memory_size: int
@@ -15,6 +16,7 @@ class DenseAgentConfig(TypedDict):
     device: torch.device
     eps_start: float
     eps_end: float
+    eps_decay: float
     lr: float
     gamma: float
     n_episodes: int
@@ -51,7 +53,7 @@ class DenseAgent(Agent):
         return res
 
     def get_action(self, board: Board, progress: float) -> int:
-        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * progress
+        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-progress * self.config["eps_decay"]))
         if random.random() < epsilon:
             return random.choice(board.get_legal_moves_vec())
         self.net.eval()
