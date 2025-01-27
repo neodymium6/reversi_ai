@@ -1,29 +1,18 @@
 from rust_reversi import Board, Turn
 import torch
+import torchinfo
+from models.dense import DenseNet
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+BATCH_SIZE = 128
 
 def main():
-    # Start a new game
-    board = Board()
-    while not board.is_game_over():
-        if board.is_pass():
-            board.do_pass()
-            continue
-        # Get random move
-        move = board.get_random_move()
-        # Execute move
-        board.do_move(move)
-
-    # Game over
-    winner = board.get_winner()
-    if winner is None:
-        print("Game drawn.")
-    elif winner == Turn.BLACK:
-        print("Black wins!")
-    else:
-        print("White wins!")
-
+    net: torch.nn.Module = DenseNet(128, 128, 64)
+    net.to(DEVICE)
+    torchinfo.summary(net, input_size=(BATCH_SIZE, 128), device=DEVICE)
+    for param in net.parameters():
+        print(f"Device: {param.device}")
+        break
 
 if __name__ == "__main__":
     main()
-    print(torch.__version__)
-    print(torch.cuda.is_available())
