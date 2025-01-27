@@ -13,9 +13,11 @@ def main():
         device=DEVICE,
         eps_start=0.9,
         eps_end=0.05,
+        lr=1e-4,
+        gamma=0.99,
+        n_episodes=1000,
         verbose=True,
     )
     agent = DenseAgent(config)
-    board = Board()
-    action = agent.get_action(board, 0.0)
-    print(action)
+    agent.train()
+    agent.save("dense_agent.pth")
