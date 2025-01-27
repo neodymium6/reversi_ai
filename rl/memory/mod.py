@@ -7,5 +7,6 @@ class Memory(ABC):
     def push(self, state: Board, action: int, next_state: Board, reward: float) -> None:
         pass
 
+    @abstractmethod
     def sample(self, batch_size: int) -> List[Tuple[Board, int, Board, float]]:
         pass
