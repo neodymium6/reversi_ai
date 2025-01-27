@@ -1,6 +1,6 @@
 from rl.agents import Agent
 from rl.memory.simple import SimpleMemory
-from rust_reversi import Board
+from rust_reversi import Board, Turn
 from rl.models.dense import DenseNet
 from typing import List, TypedDict
 import torch
@@ -131,8 +131,52 @@ class DenseAgent(Agent):
                 self.optimize()
             self.update_target_net()
 
+            if self.config["verbose"] and i % (self.config["n_episodes"] // 10) == 0:
+                win_rate = self.vs_random(1000)
+                print(f"Episode {i}: Win rate vs random = {win_rate}")
+
     def save(self, path: str):
         torch.save(self.net.state_dict(), path)
 
     def load(self, path: str):
         self.net.load_state_dict(torch.load(path, weights_only=True))
+
+    def vs_random(self, n_games: int) -> float:
+        self.net.eval()
+        def two_game():
+            win_count = 0
+            # agent is black
+            board = Board()
+            while not board.is_game_over():
+                if board.is_pass():
+                    board.do_pass()
+                    continue
+                _p, _o, turn = board.get_board()
+                if turn == Turn.BLACK:
+                    action = self.get_action(board, 1.0)
+                else:
+                    action = board.get_random_move()
+                board.do_move(action)
+            if board.is_black_win():
+                win_count += 1
+            # agent is white
+            board = Board()
+            while not board.is_game_over():
+                if board.is_pass():
+                    board.do_pass()
+                    continue
+                _p, _o, turn = board.get_board()
+                if turn == Turn.WHITE:
+                    action = self.get_action(board, 1.0)
+                else:
+                    action = board.get_random_move()
+                board.do_move(action)
+            if board.is_white_win():
+                win_count += 1
+            return win_count
+    
+        win_count = 0
+        for _ in range(n_games // 2):
+            win_count += two_game()
+        win_rate = win_count / n_games
+        return win_rate

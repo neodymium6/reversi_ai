@@ -13,7 +13,7 @@ def train():
         device=DEVICE,
         eps_start=0.9,
         eps_end=0.05,
-        lr=1e-4,
+        lr=1e-3,
         gamma=0.99,
         n_episodes=1000,
         verbose=True,
@@ -38,41 +38,5 @@ def vs_random():
     )
     agent = DenseAgent(config)
     agent.load("dense_agent.pth")
-    
-    def two_game():
-        win_count = 0
-        # agent is black
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            _p, _o, turn = board.get_board()
-            if turn == Turn.BLACK:
-                action = agent.get_action(board, 1.0)
-            else:
-                action = board.get_random_move()
-            board.do_move(action)
-        if board.is_black_win():
-            win_count += 1
-        # agent is white
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            _p, _o, turn = board.get_board()
-            if turn == Turn.WHITE:
-                action = agent.get_action(board, 1.0)
-            else:
-                action = board.get_random_move()
-            board.do_move(action)
-        if board.is_white_win():
-            win_count += 1
-        return win_count
-    
-    win_count = 0
-    n_games = 1000
-    for _ in range(n_games // 2):
-        win_count += two_game()
-    print(f"Win rate: {win_count / n_games}")
+    win_rate = agent.vs_random(1000)
+    print(f"Win rate: {win_rate}")
