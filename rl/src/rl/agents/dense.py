@@ -60,3 +60,26 @@ class DenseAgent(Agent):
     
     def update_target_net(self):
         self.target_net.load_state_dict(self.net.state_dict())
+
+    def train(self, num_episodes: int):
+        for i in range(num_episodes):
+            board = Board()
+
+            while True:
+                action = self.get_action(board, i / num_episodes)
+                next_board = board.clone()
+                next_board.do_move(action)
+
+                if next_board.is_game_over():
+                    if next_board.is_win():
+                        reward = 0.0        # turn swapped in do_move, so is_win menas the player that just moved lost
+                    elif next_board.is_lose():
+                        reward = 1.0        # turn swapped in do_move, so is_lose menas the player that just moved won
+                    else:
+                        reward = 0.5        # draw
+                    
+                    self.memory.push(board, action, next_board, reward)
+                    break
+                else:
+                    self.memory.push(board, action, next_board, 0.0)
+                    board = next_board
