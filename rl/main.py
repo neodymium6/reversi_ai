@@ -1,4 +1,6 @@
 from rust_reversi import Board, Turn
+import torch
+
 def main():
     # Start a new game
     board = Board()
@@ -23,3 +25,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print(torch.__version__)
+    print(torch.cuda.is_available())
