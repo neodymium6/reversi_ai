@@ -5,7 +5,7 @@ from rl.memory import Memory
 from collections import deque
 
 class SimpleMemory(Memory):
-    def __init__(self, maxlen=10000):
+    def __init__(self, maxlen):
         self.memory = deque(maxlen=maxlen)
 
     def push(self, state: Board, action: int, next_state: Board, reward: float) -> None:

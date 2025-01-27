@@ -9,7 +9,7 @@ class DenseNet(torch.nn.Module):
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(0.5)
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         x = self.fc1(x)
         x = self.relu(x)
         x = self.dropout(x)

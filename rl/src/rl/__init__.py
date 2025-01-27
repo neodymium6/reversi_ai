@@ -1,15 +1,20 @@
-from rust_reversi import Board, Turn
+from rust_reversi import Board
 import torch
-import torchinfo
 from rl.models.dense import DenseNet
+from rl.agents.dense import DenseAgent, DenseAgentConfig
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 128
 
 def main():
-    net: torch.nn.Module = DenseNet(128, 128, 64)
-    net.to(DEVICE)
-    torchinfo.summary(net, input_size=(BATCH_SIZE, 128), device=DEVICE)
-    for param in net.parameters():
-        print(f"Device: {param.device}")
-        break
+    config = DenseAgentConfig(
+        memory_size=10000,
+        hidden_size=256,
+        device=DEVICE,
+        verbose=True,
+        batch_size=BATCH_SIZE
+    )
+    agent = DenseAgent(config)
+    board = Board()
+    action = agent.get_action(board)
+    print(action)
