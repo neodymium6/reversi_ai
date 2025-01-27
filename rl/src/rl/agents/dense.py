@@ -9,9 +9,9 @@ import torchinfo
 class DenseAgentConfig(TypedDict):
     memory_size: int
     hidden_size: int
+    batch_size: int
     device: torch.device
     verbose: bool
-    batch_size: int
 
 
 class DenseAgent(Agent):
