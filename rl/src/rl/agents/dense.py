@@ -129,3 +129,6 @@ class DenseAgent(Agent):
 
     def save(self, path: str):
         torch.save(self.net.state_dict(), path)
+
+    def load(self, path: str):
+        self.net.load_state_dict(torch.load(path, weights_only=True))

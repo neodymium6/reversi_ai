@@ -13,7 +13,9 @@ dependencies = [
 ]
 
 [project.scripts]
-main = "rl:main"
+train = "rl:train"
+vs_random = "rl:vs_random"
+
 
 [build-system]
 requires = ["hatchling"]
