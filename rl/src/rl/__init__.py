@@ -1,7 +1,7 @@
 from rust_reversi import Board, Turn
 import torch
 import torchinfo
-from models.dense import DenseNet
+from rl.models.dense import DenseNet
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 128
@@ -13,6 +13,3 @@ def main():
     for param in net.parameters():
         print(f"Device: {param.device}")
         break
-
-if __name__ == "__main__":
-    main()
