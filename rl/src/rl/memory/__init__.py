@@ -10,3 +10,7 @@ class Memory(ABC):
     @abstractmethod
     def sample(self, batch_size: int) -> List[Tuple[Board, int, Board, float]]:
         pass
+
+    @abstractmethod
+    def __len__(self) -> int:
+        pass
