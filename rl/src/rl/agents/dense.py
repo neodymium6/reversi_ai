@@ -22,7 +22,10 @@ class DenseAgent(Agent):
         super().__init__()
         self.memory = SimpleMemory(config["memory_size"])
         self.net = DenseNet(128, config["hidden_size"], 64)
+        self.target_net = DenseNet(128, config["hidden_size"], 64)
+        self.target_net.load_state_dict(self.net.state_dict())
         self.net.to(config["device"])
+        self.target_net.to(config["device"])
         if config["verbose"]:
             torchinfo.summary(self.net, input_size=(config["batch_size"], 128), device=config["device"])
             for param in self.net.parameters():
@@ -54,3 +57,6 @@ class DenseAgent(Agent):
         out = out.cpu().numpy()
         out = out * legal_actions
         return out.argmax()
+    
+    def update_target_net(self):
+        self.target_net.load_state_dict(self.net.state_dict())
