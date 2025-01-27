@@ -88,8 +88,8 @@ class DenseAgent(Agent):
         q_s_a = q_s.gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             q_ns: torch.Tensor = self.target_net(next_states_t)
-            q_ns = 1.0 - q_ns
             v_ns: torch.Tensor = q_ns.max(1).values
+            v_ns = 1.0 - v_ns           # The value of the next state is the value of the opponent (1 - value is the value of the player)
         for ns_idx, ns in enumerate(next_states):
             if ns.is_game_over():
                 v_ns[ns_idx] = 0.0      # If the game is over, the value of the next state is 0 and the reward is the final reward
