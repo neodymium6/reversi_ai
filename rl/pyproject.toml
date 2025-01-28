@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 train = "rl:train"
 vs_random = "rl:vs_random"
+vs_alpha_beta = "rl:vs_alpha_beta"
 
 
 [build-system]

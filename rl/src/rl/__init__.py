@@ -42,3 +42,22 @@ def vs_random():
     agent.load("dense_agent.pth")
     win_rate = agent.vs_random(1000)
     print(f"Win rate: {win_rate}")
+
+def vs_alpha_beta():
+    config = DenseAgentConfig(
+        memory_size=10000,
+        hidden_size=256,
+        batch_size=BATCH_SIZE,
+        device=DEVICE,
+        eps_start=0.0,
+        eps_end=0.0,
+        eps_decay=10,
+        lr=1e-4,
+        gamma=0.99,
+        n_episodes=1000,
+        verbose=False,
+    )
+    agent = DenseAgent(config)
+    agent.load("dense_agent.pth")
+    win_rate = agent.vs_alpha_beta(1000)
+    print(f"Win rate: {win_rate}")
