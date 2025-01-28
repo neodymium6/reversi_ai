@@ -61,14 +61,9 @@ class DenseAgent(Agent):
         board_tensor = board_tensor.to(self.config["device"])
         with torch.no_grad():
             out: torch.Tensor = self.net(board_tensor)
-        legal_actions: List[bool] = board.get_legal_moves_tf()
-        legal_actions = [1 if x else 0 for x in legal_actions]
-        out = out.cpu().numpy()
-        out = out * legal_actions
-        if out.max() == 0.0:
-            # If unfortunately all legal actions have 0 value, choose a random action
-            return random.choice(board.get_legal_moves_vec())
-        return out.argmax()
+        legal_actions: torch.Tensor = torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"])
+        out = out.masked_fill(~legal_actions, -1e9)
+        return out.argmax().item()
     
     def update_target_net(self):
         self.target_net.load_state_dict(self.net.state_dict())
@@ -90,6 +85,8 @@ class DenseAgent(Agent):
         q_s_a = q_s.gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             q_ns: torch.Tensor = self.target_net(next_states_t)
+            legal_actions: torch.Tensor = torch.tensor([ns.get_legal_moves_tf() for ns in next_states], dtype=torch.bool, device=self.config["device"])
+            q_ns = q_ns.masked_fill(~legal_actions, -1e9)
             v_ns: torch.Tensor = q_ns.max(1).values
             v_ns = 1.0 - v_ns           # The value of the next state is the value of the opponent (1 - value is the value of the player)
         for ns_idx, ns in enumerate(next_states):
@@ -136,6 +133,7 @@ class DenseAgent(Agent):
             if self.config["verbose"] and i % (self.config["n_episodes"] // 10) == 0:
                 win_rate = self.vs_random(1000)
                 print(f"Episode {i}: Win rate vs random = {win_rate}")
+                self.save("dense_agent.pth")
 
     def save(self, path: str):
         torch.save(self.net.state_dict(), path)
