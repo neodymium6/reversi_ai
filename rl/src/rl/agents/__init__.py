@@ -15,6 +15,7 @@ class AgentConfig(TypedDict):
     lr: float
     gamma: float
     n_episodes: int
+    model_path: str
     verbose: bool
 
 class Agent(ABC):
@@ -99,13 +100,21 @@ class Agent(ABC):
                 self.optimize()
             self.update_target_net()
 
-            if self.config["verbose"] and i % (self.config["n_episodes"] // 10) == 0:
-                win_rate = self.vs_random(1000)
-                print(f"Episode {i}: Win rate vs random = {win_rate}")
-                self.save("dense_agent.pth")
+            if i % (self.config["n_episodes"] // 10) == 0:
+                if self.config["verbose"]:
+                    win_rate = self.vs_random(1000)
+                    print(f"Episode {i}: Win rate vs random = {win_rate}")
+                self.save()
+        if self.config["verbose"]:
+            print("Training finished")
+            win_rate = self.vs_random(1000)
+            print(f"Win rate vs random = {win_rate}")
+        self.save()
 
-    def save(self, path: str):
-        torch.save(self.net.state_dict(), path)
+    def save(self):
+        if self.config["verbose"]:
+            print(f"Saving model to {self.config['model_path']}")
+        torch.save(self.net.state_dict(), self.config["model_path"])
 
     def load(self, path: str):
         self.net.load_state_dict(torch.load(path, weights_only=True))

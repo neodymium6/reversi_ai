@@ -17,11 +17,11 @@ def train():
         gamma=0.99,
         # n_episodes=50000,
         n_episodes=1000,
+        model_path="dense_agent.pth",
         verbose=True,
     )
     agent = DenseAgent(config)
     agent.train()
-    agent.save("dense_agent.pth")
 
 
 def vs_random():
