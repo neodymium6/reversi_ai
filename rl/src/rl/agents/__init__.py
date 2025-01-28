@@ -19,6 +19,7 @@ class AgentConfig(TypedDict):
     lr: float
     gamma: float
     n_episodes: int
+    episodes_per_optimize: int
     model_path: str
     verbose: bool
 
@@ -97,14 +98,15 @@ class Agent(ABC):
                 for state, action, next_state, reward in zip(states, actions, next_states, rewards):
                     self.memory.push(state, action, next_state, reward)
 
+            if i % self.config["episodes_per_optimize"] == 0:
                 for _ in range(self.config["board_batch_size"]):
                     self.optimize()
-            self.update_target_net()
+                self.update_target_net()
 
             if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:
                     win_rate = self.vs_random(1000)
-                    print(f"Episode {i}: Win rate vs random = {win_rate}")
+                    print(f"Episode {i * self.config['board_batch_size']}: Win rate vs random = {win_rate}")
                 self.save()
         if self.config["verbose"]:
             print("Training finished")

@@ -6,17 +6,18 @@ BATCH_SIZE = 128
 HIDDEN_SIZE = 256
 
 train_config = DenseAgentConfig(
-        memory_size=10000,
+        memory_size=int(1e5),
         hidden_size=HIDDEN_SIZE,
         batch_size=BATCH_SIZE,
-        board_batch_size=128,
+        board_batch_size=256,
         device=DEVICE,
         eps_start=0.9,
         eps_end=0.05,
         eps_decay=10,
         lr=1e-4,
         gamma=0.99,
-        n_episodes=50000,
+        n_episodes=160000,
+        episodes_per_optimize=16,
         model_path="dense_agent.pth",
         verbose=True,
 )
@@ -33,6 +34,7 @@ vs_config = DenseAgentConfig(
     lr=1e-4,
     gamma=0.99,
     n_episodes=1000,
+    episodes_per_optimize=16,
     verbose=False,
 )
 
