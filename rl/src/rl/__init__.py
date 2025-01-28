@@ -1,4 +1,3 @@
-from rust_reversi import Board, Turn
 import torch
 from rl.agents.dense import DenseAgent, DenseAgentConfig
 
