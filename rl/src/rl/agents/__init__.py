@@ -6,10 +6,12 @@ from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEv
 import torch
 import tqdm
 from rl.memory import Memory
+from rl.agents.batch_board import BatchBoard
 
 class AgentConfig(TypedDict):
     memory_size: int
     batch_size: int
+    board_batch_size: int
     device: torch.device
     eps_start: float
     eps_end: float
@@ -34,12 +36,19 @@ class Agent(ABC):
         pass
 
     @abstractmethod
+    def get_action_batch(self, boards: List[Board], episoide: int) -> List[int]:
+        pass
+
+    @abstractmethod
     def board_to_input(self, board: Board) -> torch.Tensor:
         pass
 
     @abstractmethod
     def update_target_net(self):
         pass
+
+    def get_epsilon(self, episode: int) -> float:
+        return self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-episode * self.config["eps_decay"] / 1000))
 
     def optimize(self):
         if len(self.memory) < self.config["batch_size"]:
@@ -72,37 +81,26 @@ class Agent(ABC):
         self.optimizer.step()
 
     def train(self):
+        iter_size = self.config["n_episodes"] // self.config["board_batch_size"]
         if self.config["verbose"]:
-            episodes_iter = tqdm.tqdm(range(self.config["n_episodes"]))
+            episodes_iter = tqdm.tqdm(range(iter_size))
         else:
-            episodes_iter = range(self.config["n_episodes"])
+            episodes_iter = range(iter_size)
         for i in episodes_iter:
-            board = Board()
+            board_batch = BatchBoard(self.config["board_batch_size"])
 
-            while True:
-                if board.is_pass():
-                    board.do_pass()
-                action = self.get_action(board, i)
-                next_board = board.clone()
-                next_board.do_move(action)
+            while not board_batch.is_game_over():
+                states = board_batch.get_boards()
+                actions = self.get_action_batch(states, i * self.config["board_batch_size"])
+                next_states, rewards = board_batch.do_move(actions)
 
-                if next_board.is_game_over():
-                    if next_board.is_win():
-                        reward = 0.0        # turn swapped in do_move, so is_win menas the player that just moved lost
-                    elif next_board.is_lose():
-                        reward = 1.0        # turn swapped in do_move, so is_lose menas the player that just moved won
-                    else:
-                        reward = 0.5        # draw
-                    
-                    self.memory.push(board, action, next_board, reward)
-                    break
-                else:
-                    self.memory.push(board, action, next_board, 0.0)
-                    board = next_board
+                for state, action, next_state, reward in zip(states, actions, next_states, rewards):
+                    self.memory.push(state, action, next_state, reward)
+
                 self.optimize()
             self.update_target_net()
 
-            if i % (self.config["n_episodes"] // 10) == 0:
+            if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:
                     win_rate = self.vs_random(1000)
                     print(f"Episode {i}: Win rate vs random = {win_rate}")

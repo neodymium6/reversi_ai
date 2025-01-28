@@ -41,7 +41,7 @@ class DenseAgent(Agent):
         return res
 
     def get_action(self, board: Board, episode: int) -> int:
-        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-episode * self.config["eps_decay"] / 1000))
+        epsilon = self.get_epsilon(episode)
         if random.random() < epsilon:
             return random.choice(board.get_legal_moves_vec())
         self.net.eval()
@@ -52,6 +52,22 @@ class DenseAgent(Agent):
         legal_actions: torch.Tensor = torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"])
         out = out.masked_fill(~legal_actions, -1e9)
         return out.argmax().item()
+    
+    def get_action_batch(self, boards: list[Board], episoide: int) -> list[int]:
+        self.net.eval()
+        board_tensors = torch.stack([self.board_to_input(board) for board in boards])
+        board_tensors = board_tensors.to(self.config["device"])
+        with torch.no_grad():
+            out: torch.Tensor = self.net(board_tensors)
+        legal_actions = torch.stack([torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"]) for board in boards])
+        out = out.masked_fill(~legal_actions, -1e9)
+        actions = out.argmax(dim=1).tolist()
+        # override with epsilon greedy
+        epsilon = self.get_epsilon(episoide)
+        for i, board in enumerate(boards):
+            if random.random() < epsilon:
+                actions[i] = random.choice(board.get_legal_moves_vec())
+        return actions
     
     def update_target_net(self):
         self.target_net.load_state_dict(self.net.state_dict())
