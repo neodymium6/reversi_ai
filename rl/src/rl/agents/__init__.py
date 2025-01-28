@@ -132,8 +132,7 @@ class Agent(ABC):
                 if board.is_pass():
                     board.do_pass()
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.BLACK:
+                if board.get_turn() == Turn.BLACK:
                     action = self.get_action(board, 1 << 10)
                 else:
                     action = board.get_random_move()
@@ -146,8 +145,7 @@ class Agent(ABC):
                 if board.is_pass():
                     board.do_pass()
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.WHITE:
+                if board.get_turn() == Turn.WHITE:
                     action = self.get_action(board, 1 << 10)
                 else:
                     action = board.get_random_move()
@@ -180,8 +178,7 @@ class Agent(ABC):
                     action = board.get_random_move()
                     board.do_move(action)
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.BLACK:
+                if board.get_turn() == Turn.BLACK:
                     action = self.get_action(board, 1 << 10)
                 else:
                     action = search.get_move(board)
@@ -198,8 +195,7 @@ class Agent(ABC):
                     action = board.get_random_move()
                     board.do_move(action)
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.WHITE:
+                if board.get_turn() == Turn.WHITE:
                     action = self.get_action(board, 1 << 10)
                 else:
                     action = search.get_move(board)
@@ -254,8 +250,7 @@ class Agent(ABC):
                     action = board.get_random_move()
                     board.do_move(action)
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.BLACK:
+                if board.get_turn() == Turn.BLACK:
                     action = thunder_search.get_move(board)
                 else:
                     action = alpha_beta_search.get_move(board)
@@ -272,8 +267,7 @@ class Agent(ABC):
                     action = board.get_random_move()
                     board.do_move(action)
                     continue
-                _p, _o, turn = board.get_board()
-                if turn == Turn.WHITE:
+                if board.get_turn() == Turn.WHITE:
                     action = thunder_search.get_move(board)
                 else:
                     action = alpha_beta_search.get_move(board)
