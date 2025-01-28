@@ -60,9 +60,8 @@ class Agent(ABC):
             q_ns = q_ns.masked_fill(~legal_actions, -1e9)
             v_ns: torch.Tensor = q_ns.max(1).values
             v_ns = 1.0 - v_ns           # The value of the next state is the value of the opponent (1 - value is the value of the player)
-        for ns_idx, ns in enumerate(next_states):
-            if ns.is_game_over():
-                v_ns[ns_idx] = 0.0      # If the game is over, the value of the next state is 0 and the reward is the final reward
+            game_overs = torch.tensor([ns.is_game_over() for ns in next_states], dtype=torch.bool, device=self.config["device"])
+            v_ns = v_ns.masked_fill(game_overs, 0.0)    # If the game is over, the value of the next state is 0 and the reward is the final reward
         target = rewards + self.config["gamma"] * v_ns
         loss: torch.Tensor = self.criterion(q_s_a, target)
         self.optimizer.zero_grad()
