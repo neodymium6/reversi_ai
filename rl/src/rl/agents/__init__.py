@@ -97,7 +97,8 @@ class Agent(ABC):
                 for state, action, next_state, reward in zip(states, actions, next_states, rewards):
                     self.memory.push(state, action, next_state, reward)
 
-                self.optimize()
+                for _ in range(self.config["board_batch_size"]):
+                    self.optimize()
             self.update_target_net()
 
             if i % (iter_size // 10) == 0:
