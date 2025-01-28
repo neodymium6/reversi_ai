@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import random
 from typing import List, Tuple, TypedDict
+import numpy as np
 from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEvaluator, ThunderSearch
 import torch
 import tqdm
@@ -219,7 +220,8 @@ class Agent(ABC):
         legal_actions: torch.Tensor = torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"])
         out = out.masked_fill(~legal_actions, -1e9)
         out = out.cpu().numpy()
-        return out.max()
+        score = out.max()
+        return np.clip(score, 0.0, 1.0)
     
     def thunder_vs_alpha_beta(self, n_games: int, epsilon: float = 0.1) -> float:
         if self.config["verbose"]:
