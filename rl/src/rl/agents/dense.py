@@ -52,8 +52,8 @@ class DenseAgent(Agent):
                 res[i + 64] = 1.0
         return res
 
-    def get_action(self, board: Board, progress: float) -> int:
-        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-progress * self.config["eps_decay"]))
+    def get_action(self, board: Board, episode: int) -> int:
+        epsilon = self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-episode * self.config["eps_decay"] / 1000))
         if random.random() < epsilon:
             return random.choice(board.get_legal_moves_vec())
         self.net.eval()
@@ -110,7 +110,7 @@ class DenseAgent(Agent):
             while True:
                 if board.is_pass():
                     board.do_pass()
-                action = self.get_action(board, i / self.config["n_episodes"])
+                action = self.get_action(board, i)
                 next_board = board.clone()
                 next_board.do_move(action)
 
@@ -153,7 +153,7 @@ class DenseAgent(Agent):
                     continue
                 _p, _o, turn = board.get_board()
                 if turn == Turn.BLACK:
-                    action = self.get_action(board, 1.0)
+                    action = self.get_action(board, 1 << 10)
                 else:
                     action = board.get_random_move()
                 board.do_move(action)
@@ -167,7 +167,7 @@ class DenseAgent(Agent):
                     continue
                 _p, _o, turn = board.get_board()
                 if turn == Turn.WHITE:
-                    action = self.get_action(board, 1.0)
+                    action = self.get_action(board, 1 << 10)
                 else:
                     action = board.get_random_move()
                 board.do_move(action)

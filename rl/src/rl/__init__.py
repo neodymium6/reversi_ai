@@ -16,6 +16,7 @@ def train():
         eps_decay=10,
         lr=1e-4,
         gamma=0.99,
+        # n_episodes=50000,
         n_episodes=1000,
         verbose=True,
     )
@@ -30,8 +31,8 @@ def vs_random():
         hidden_size=256,
         batch_size=BATCH_SIZE,
         device=DEVICE,
-        eps_start=0.9,
-        eps_end=0.00,
+        eps_start=0.0,
+        eps_end=0.0,
         eps_decay=10,
         lr=1e-4,
         gamma=0.99,
