@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pprint import pprint
 import random
 from typing import List, Tuple, TypedDict
 import numpy as np
@@ -46,6 +47,8 @@ class Agent(ABC):
                 break
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.config["lr"])
         self.criterion = torch.nn.SmoothL1Loss()
+        if self.config["verbose"]:
+            pprint(self.config)
 
     @abstractmethod
     def get_action(self, board: Board, episoide: int) -> int:
