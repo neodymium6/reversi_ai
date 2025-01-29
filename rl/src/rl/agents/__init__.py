@@ -4,6 +4,7 @@ from typing import List, Tuple, TypedDict
 import numpy as np
 from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEvaluator, ThunderSearch
 import torch
+import torchinfo
 import tqdm
 from rl.memory import Memory
 from rl.agents.batch_board import BatchBoard
@@ -31,6 +32,17 @@ class Agent(ABC):
         self.config = config
         self.optimizer: torch.optim.Optimizer = None
         self.criterion: torch.nn.Module = None
+
+    def after_init(self):
+        self.target_net.load_state_dict(self.net.state_dict())
+        self.net.to(self.config["device"])
+        self.target_net.to(self.config["device"])
+        if self.config["verbose"]:
+            for param in self.net.parameters():
+                print(f"Device: {param.device}")
+                break
+        self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.config["lr"])
+        self.criterion = torch.nn.SmoothL1Loss()
 
     @abstractmethod
     def get_action(self, board: Board, episoide: int) -> int:
