@@ -6,7 +6,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 256
 
 train_config = CnnAgentConfig(
-        memory_size=int(5e4),
+        memory_size=int(1e5),
         batch_size=BATCH_SIZE,
         board_batch_size=256,
         device=DEVICE,
@@ -14,6 +14,7 @@ train_config = CnnAgentConfig(
         eps_end=0.05,
         eps_decay=10,
         lr=1e-5,
+        gradient_clip=0.5,
         gamma=0.99,
         n_episodes=160000,
         episodes_per_optimize=16,

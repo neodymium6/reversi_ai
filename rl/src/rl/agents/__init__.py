@@ -18,6 +18,7 @@ class AgentConfig(TypedDict):
     eps_end: float
     eps_decay: float
     lr: float
+    gradient_clip: float
     gamma: float
     n_episodes: int
     episodes_per_optimize: int
@@ -93,6 +94,7 @@ class Agent(ABC):
         loss_value = loss.item()
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_value_(self.net.parameters(), self.config["gradient_clip"])
         self.optimizer.step()
         return loss_value
 
