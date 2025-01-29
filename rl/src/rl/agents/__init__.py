@@ -22,6 +22,7 @@ class AgentConfig(TypedDict):
     gamma: float
     n_episodes: int
     episodes_per_optimize: int
+    episodes_per_target_update: int
     model_path: str
     verbose: bool
 
@@ -121,7 +122,9 @@ class Agent(ABC):
                     loss = self.optimize()
                     optimize_count += 1
                     self.losses.append((optimize_count, loss))
-            self.update_target_net()
+
+                if step_count % (60 * self.config["episodes_per_target_update"] // self.config["board_batch_size"]) == 0:
+                    self.update_target_net()
 
             if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:

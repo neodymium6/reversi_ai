@@ -13,11 +13,12 @@ train_config = CnnAgentConfig(
         eps_start=0.9,
         eps_end=0.05,
         eps_decay=10,
-        lr=1e-6,
+        lr=1e-5,
         gradient_clip=1.0,
         gamma=0.99,
         n_episodes=160000 * 3,
         episodes_per_optimize=16,
+        episodes_per_target_update=16 * 4,
         verbose=True,
 
         num_channels=128,
