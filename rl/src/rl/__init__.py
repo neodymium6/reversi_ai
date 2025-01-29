@@ -3,22 +3,22 @@ import torch
 from rl.agents.cnn import CnnAgent, CnnAgentConfig
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 256
+BATCH_SIZE = 512
 
 train_config = CnnAgentConfig(
         memory_size=int(1e5),
         batch_size=BATCH_SIZE,
         board_batch_size=240,
         device=DEVICE,
-        eps_start=0.9,
-        eps_end=0.05,
-        eps_decay=10,
+        eps_start=1.0,
+        eps_end=0.1,
+        eps_decay=2,
         lr=1e-5,
         gradient_clip=1.0,
         gamma=0.99,
         n_episodes=160000 * 3,
         episodes_per_optimize=16,
-        episodes_per_target_update=16 * 4,
+        episodes_per_target_update=16 * 8,
         verbose=True,
 
         num_channels=128,
