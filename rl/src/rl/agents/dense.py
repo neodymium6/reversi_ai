@@ -1,4 +1,4 @@
-from rl.agents import Agent, AgentConfig
+from rl.agents import AgentConfig
 from rl.agents.q_net import QnetAgent
 from rl.memory.simple import SimpleMemory
 from rust_reversi import Board
