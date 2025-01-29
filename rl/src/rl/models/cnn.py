@@ -16,10 +16,12 @@ class Conv5Net(torch.nn.Module):
         self.fc1 = torch.nn.Linear(num_channels * 8 * 8, fc_hidden_size)
         self.fc2 = torch.nn.Linear(fc_hidden_size, 64)
         self.relu = torch.nn.ReLU()
-        self.dropout = torch.nn.Dropout(0.5)
+        self.dropout = torch.nn.Dropout(0.2)
         self.num_channels = num_channels
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if len(x.shape) == 3:
+            x = x.unsqueeze(0)
         x = self.bn1(self.conv1(x))
         x = self.relu(x)
         x = self.dropout(x)
