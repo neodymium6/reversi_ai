@@ -101,6 +101,7 @@ class Agent(ABC):
     def train(self):
         iter_size = self.config["n_episodes"] // self.config["board_batch_size"]
         optimize_count = 0
+        step_count = 0
         if self.config["verbose"]:
             episodes_iter = tqdm.tqdm(range(iter_size))
         else:
@@ -115,13 +116,12 @@ class Agent(ABC):
 
                 for state, action, next_state, reward in zip(states, actions, next_states, rewards):
                     self.memory.push(state, action, next_state, reward)
-
-            if i % self.config["episodes_per_optimize"] == 0:
-                for _ in range(self.config["board_batch_size"]):
+                step_count += 1
+                if step_count % (60 * self.config["episodes_per_optimize"] // self.config["board_batch_size"]) == 0:
                     loss = self.optimize()
                     optimize_count += 1
                     self.losses.append((optimize_count, loss))
-                self.update_target_net()
+            self.update_target_net()
 
             if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:
