@@ -1,3 +1,4 @@
+import copy
 import torch
 from rl.agents.dense import DenseAgent, DenseAgentConfig
 
@@ -22,21 +23,10 @@ train_config = DenseAgentConfig(
         verbose=True,
 )
 
-vs_config = DenseAgentConfig(
-    memory_size=10000,
-    hidden_size=HIDDEN_SIZE,
-    batch_size=BATCH_SIZE,
-    board_batch_size=128,
-    device=DEVICE,
-    eps_start=0.0,
-    eps_end=0.0,
-    eps_decay=10,
-    lr=1e-4,
-    gamma=0.99,
-    n_episodes=1000,
-    episodes_per_optimize=16,
-    verbose=False,
-)
+vs_config = copy.deepcopy(train_config)
+vs_config["eps_start"] = 0.0
+vs_config["eps_end"] = 0.0
+vs_config["verbose"] = False
 
 def train():
     agent = DenseAgent(train_config)
