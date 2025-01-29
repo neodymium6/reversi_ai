@@ -4,7 +4,7 @@ from typing import List, Tuple, TypedDict
 import numpy as np
 from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEvaluator, ThunderSearch
 import torch
-import torchinfo
+import matplotlib.pyplot as plt
 import tqdm
 from rl.memory import Memory
 from rl.agents.batch_board import BatchBoard
@@ -32,6 +32,7 @@ class Agent(ABC):
         self.config = config
         self.optimizer: torch.optim.Optimizer = None
         self.criterion: torch.nn.Module = None
+        self.losses = []
 
     def after_init(self):
         self.target_net.load_state_dict(self.net.state_dict())
@@ -63,7 +64,7 @@ class Agent(ABC):
     def get_epsilon(self, episode: int) -> float:
         return self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-episode * self.config["eps_decay"] / 1000))
 
-    def optimize(self):
+    def optimize(self) -> float:
         if len(self.memory) < self.config["batch_size"]:
             return
         self.net.train()
@@ -89,12 +90,15 @@ class Agent(ABC):
             v_ns = v_ns.masked_fill(game_overs, 0.0)    # If the game is over, the value of the next state is 0 and the reward is the final reward
         target = rewards + self.config["gamma"] * v_ns
         loss: torch.Tensor = self.criterion(q_s_a, target)
+        loss_value = loss.item()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return loss_value
 
     def train(self):
         iter_size = self.config["n_episodes"] // self.config["board_batch_size"]
+        optimize_count = 0
         if self.config["verbose"]:
             episodes_iter = tqdm.tqdm(range(iter_size))
         else:
@@ -112,7 +116,9 @@ class Agent(ABC):
 
             if i % self.config["episodes_per_optimize"] == 0:
                 for _ in range(self.config["board_batch_size"]):
-                    self.optimize()
+                    loss = self.optimize()
+                    optimize_count += 1
+                    self.losses.append((optimize_count, loss))
                 self.update_target_net()
 
             if i % (iter_size // 10) == 0:
@@ -130,6 +136,28 @@ class Agent(ABC):
         if self.config["verbose"]:
             print(f"Saving model to {self.config['model_path']}")
         torch.save(self.net.state_dict(), self.config["model_path"])
+
+    def plot(self):
+        def calculate_moving_average(data, window_size):
+            results = []
+            for i in range(len(data)):
+                if i < window_size - 1:
+                    results.append(None)
+                else:
+                    window = data[i-window_size+1:i+1]
+                    window_average = sum(window) / window_size
+                    results.append(window_average)
+            return results
+        fig, ax = plt.subplots()
+        (optimize_count, loss) = zip(*self.losses)
+        ma100 = calculate_moving_average(loss, 100)
+        ax.plot(optimize_count, ma100, label="Moving average loss (window=100)")
+        ma1000 = calculate_moving_average(loss, 1000)
+        ax.plot(optimize_count, ma1000, label="Moving average loss (window=1000)")
+        ax.set_xlabel("Optimize count")
+        ax.set_ylabel("Loss")
+        fig.legend()
+        plt.savefig("loss.png")
 
     def load(self, path: str):
         self.net.load_state_dict(torch.load(path, weights_only=True))

@@ -13,7 +13,7 @@ train_config = CnnAgentConfig(
         eps_start=0.9,
         eps_end=0.05,
         eps_decay=10,
-        lr=5e-4,
+        lr=1e-5,
         gamma=0.99,
         n_episodes=160000,
         episodes_per_optimize=16,
@@ -34,6 +34,7 @@ vs_agent = CnnAgent(vs_config)
 
 def train():
     train_agent.train()
+    train_agent.plot()
 
 def vs_random():
     vs_agent.load(vs_agent.config["model_path"])
