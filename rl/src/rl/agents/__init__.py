@@ -46,6 +46,11 @@ class Agent(ABC):
                 print(f"Device: {param.device}")
                 break
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.config["lr"])
+        self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            self.optimizer,
+            max_lr=self.config["lr"] * 10,
+            total_steps=self.config["n_episodes"] // self.config["episodes_per_optimize"],
+        )
         self.criterion = torch.nn.SmoothL1Loss()
         if self.config["verbose"]:
             pprint(self.config)
@@ -102,6 +107,7 @@ class Agent(ABC):
         loss.backward()
         torch.nn.utils.clip_grad_value_(self.net.parameters(), self.config["gradient_clip"])
         self.optimizer.step()
+        self.lr_scheduler.step()
         return loss_value
 
     def train(self):
@@ -135,12 +141,15 @@ class Agent(ABC):
                 if self.config["verbose"]:
                     win_rate = self.vs_random(1000)
                     print(f"Episode {i * self.config['board_batch_size']}: Win rate vs random = {win_rate}")
-                self.save()
+                if i != 0:
+                    self.save()
+                    self.plot()
         if self.config["verbose"]:
             print("Training finished")
             win_rate = self.vs_random(1000)
             print(f"Win rate vs random = {win_rate}")
         self.save()
+        self.plot()
 
     def save(self):
         if self.config["verbose"]:
