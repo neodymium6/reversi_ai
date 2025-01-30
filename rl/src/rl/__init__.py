@@ -11,18 +11,18 @@ train_config = CnnAgentConfig(
         board_batch_size=240,
         device=DEVICE,
         eps_start=1.0,
-        eps_end=0.1,
-        eps_decay=2,
-        lr=1e-5,
+        eps_end=0.05,
+        eps_decay=10,
+        lr=1e-6,
         gradient_clip=1.0,
         gamma=0.99,
         n_episodes=160000 * 3,
         episodes_per_optimize=16,
-        episodes_per_target_update=16 * 8,
+        episodes_per_target_update=16 * 16,
         verbose=True,
 
-        num_channels=128,
-        fc_hidden_size=128,
+        num_channels=192,
+        fc_hidden_size=256,
         model_path="cnn_agent.pth",
 )
 
@@ -35,7 +35,6 @@ def train():
     train_agent = CnnAgent(train_config)
     train_agent.train()
     train_agent.plot()
-
 def vs_random():
     vs_agent = CnnAgent(vs_config)
     vs_agent.load(vs_agent.config["model_path"])
