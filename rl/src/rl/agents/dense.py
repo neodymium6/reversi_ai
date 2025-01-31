@@ -14,8 +14,8 @@ class DenseAgent(QnetAgent):
     def __init__(self, config: DenseAgentConfig):
         super().__init__(config)
         self.memory = SimpleMemory(config["memory_size"])
-        self.net = DenseNet(128, config["hidden_size"], 64)
-        self.target_net = DenseNet(128, config["hidden_size"], 64)
+        self.net = DenseNet(config["hidden_size"])
+        self.target_net = DenseNet(config["hidden_size"])
         if config["verbose"]:
             torchinfo.summary(self.net, input_size=(config["batch_size"], 128), device=config["device"])
         self.config = config
