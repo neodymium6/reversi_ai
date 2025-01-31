@@ -77,7 +77,7 @@ class Agent(ABC):
 
     def optimize(self) -> float:
         if len(self.memory) < self.config["batch_size"]:
-            return
+            return 0.0
         self.net.train()
         self.target_net.eval()
         batch: List[Tuple[Board, int, Board, float]] = self.memory.sample(self.config["batch_size"])
