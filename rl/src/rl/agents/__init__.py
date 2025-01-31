@@ -49,7 +49,8 @@ class Agent(ABC):
         self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             self.optimizer,
             max_lr=self.config["lr"] * 10,
-            total_steps=self.config["n_episodes"] // self.config["episodes_per_optimize"],
+            # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
+            total_steps=int(1.1 * self.config["n_episodes"]) // self.config["episodes_per_optimize"],
         )
         self.criterion = torch.nn.SmoothL1Loss()
         if self.config["verbose"]:
@@ -92,12 +93,17 @@ class Agent(ABC):
         q_s_a = q_s.gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             q_ns: torch.Tensor = self.target_net(next_states_t)
-            legal_actions: torch.Tensor = torch.tensor([ns.get_legal_moves_tf() for ns in next_states], dtype=torch.bool, device=self.config["device"])
+            # 64th element is pass
+            # pass is only legal when the player has no legal moves
+            legal_actions: torch.Tensor = torch.tensor(
+                [ns.get_legal_moves_tf() + [ns.is_pass()] for ns in next_states],
+                dtype=torch.bool,
+                device=self.config["device"]
+            )
             q_ns = q_ns.masked_fill(~legal_actions, -1e9)
             v_ns: torch.Tensor = q_ns.max(1).values
-            # ns can be pass state. In this case, the value of the next state is 0, not 1e-9
-            v_ns = torch.where(v_ns < -1e8, torch.zeros_like(v_ns), v_ns)
-            v_ns = 1.0 - v_ns           # The value of the next state is the value of the opponent (1 - value is the value of the player)
+            # The value of the next state is the value of the opponent (1 - value is the value of the player)
+            v_ns = 1.0 - v_ns
             game_overs = torch.tensor([ns.is_game_over() for ns in next_states], dtype=torch.bool, device=self.config["device"])
             v_ns = v_ns.masked_fill(game_overs, 0.0)    # If the game is over, the value of the next state is 0 and the reward is the final reward
         target = rewards + self.config["gamma"] * v_ns
@@ -278,7 +284,11 @@ class Agent(ABC):
         board_tensor = board_tensor.to(self.config["device"])
         with torch.no_grad():
             out: torch.Tensor = self.net(board_tensor)
-        legal_actions: torch.Tensor = torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"])
+        legal_actions: torch.Tensor = torch.tensor(
+            board.get_legal_moves_tf() + [board.is_pass()],
+            dtype=torch.bool,
+            device=self.config["device"]
+        )
         out = out.masked_fill(~legal_actions, -1e9)
         out = out.cpu().numpy()
         score = out.max()
