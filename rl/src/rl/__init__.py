@@ -4,9 +4,11 @@ from rl.agents.cnn import CnnAgent, CnnAgentConfig
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
+EPISODES = 480000
+EPISODES_PER_OPTIMIZE = 16
 
 train_config = CnnAgentConfig(
-        memory_size=int(1e5),
+        memory_size=EPISODES // 5,
         batch_size=BATCH_SIZE,
         board_batch_size=240,
         device=DEVICE,
@@ -16,9 +18,9 @@ train_config = CnnAgentConfig(
         lr=1e-5,
         gradient_clip=1.0,
         gamma=0.99,
-        n_episodes=160000 * 3,
-        episodes_per_optimize=16 * 1,
-        episodes_per_target_update=16 * 8 * 1,
+        n_episodes=EPISODES,
+        episodes_per_optimize=EPISODES_PER_OPTIMIZE,
+        episodes_per_target_update=EPISODES_PER_OPTIMIZE * 8,
         verbose=True,
 
         num_channels=64,
