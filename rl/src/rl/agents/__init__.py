@@ -135,12 +135,15 @@ class Agent(ABC):
                 for state, action, next_state, reward in zip(states, actions, next_states, rewards):
                     self.memory.push(state, action, next_state, reward)
                 step_count += 1
-                if step_count % (60 * self.config["episodes_per_optimize"] // self.config["board_batch_size"]) == 0:
+
+                scale = 100
+                memory_size_per_episode = 60
+                if scale * step_count % (scale * memory_size_per_episode * self.config["episodes_per_optimize"] // self.config["board_batch_size"]) == 0:
                     loss = self.optimize()
                     optimize_count += 1
                     self.losses.append((optimize_count, loss))
 
-                if step_count % (60 * self.config["episodes_per_target_update"] // self.config["board_batch_size"]) == 0:
+                if scale * step_count % (scale * memory_size_per_episode * self.config["episodes_per_target_update"] // self.config["board_batch_size"]) == 0:
                     self.update_target_net()
 
             if i % (iter_size // 10) == 0:
