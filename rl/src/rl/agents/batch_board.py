@@ -15,7 +15,10 @@ class BatchBoard:
         next_boards = []
         rewards = []
         for board, move in zip(self.boards, moves):
-            board.do_move(move)
+            if move == 64:
+                board.do_pass()
+            else:
+                board.do_move(move)
             next_boards.append(board.clone())
             if board.is_game_over():
                 if board.is_win():
@@ -29,9 +32,7 @@ class BatchBoard:
                     rewards.append(0.5)
             else:
                 rewards.append(0.0)
-                if board.is_pass():
-                    board.do_pass()
-                # if the game is not over, add the board to new_boards in movable state
+                # only append if not game over
                 new_boards.append(board.clone())
         self.boards = new_boards
         return next_boards, rewards
