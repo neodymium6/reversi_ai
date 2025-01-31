@@ -19,6 +19,8 @@ class QnetAgent(Agent):
         pass
 
     def get_action(self, board: Board, episode: int) -> int:
+        if board.is_pass():
+            return 64
         epsilon = self.get_epsilon(episode)
         if random.random() < epsilon:
             return random.choice(board.get_legal_moves_vec())
@@ -27,7 +29,12 @@ class QnetAgent(Agent):
         board_tensor = board_tensor.to(self.config["device"])
         with torch.no_grad():
             out: torch.Tensor = self.net(board_tensor)
-        legal_actions: torch.Tensor = torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"])
+        # 64th element is pass
+        legal_actions: torch.Tensor = torch.tensor(
+            board.get_legal_moves_tf() + [board.is_pass()],
+            dtype=torch.bool,
+            device=self.config["device"],
+        )
         out = out.masked_fill(~legal_actions, -1e9)
         return out.argmax().item()
     
@@ -37,13 +44,20 @@ class QnetAgent(Agent):
         board_tensors = board_tensors.to(self.config["device"])
         with torch.no_grad():
             out: torch.Tensor = self.net(board_tensors)
-        legal_actions = torch.stack([torch.tensor(board.get_legal_moves_tf(), dtype=torch.bool, device=self.config["device"]) for board in boards])
+        # 64th element is pass
+        legal_actions = torch.stack([torch.tensor(
+                board.get_legal_moves_tf() + [board.is_pass()],
+                dtype=torch.bool,
+                device=self.config["device"]
+        ) for board in boards])
         out = out.masked_fill(~legal_actions, -1e9)
         actions = out.argmax(dim=1).tolist()
         # override with epsilon greedy
         epsilon = self.get_epsilon(episoide)
         for i, board in enumerate(boards):
+            if board.is_pass():
+                actions[i] = 64
+                continue
             if random.random() < epsilon:
                 actions[i] = random.choice(board.get_legal_moves_vec())
         return actions
-    
