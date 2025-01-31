@@ -1,6 +1,8 @@
 import torch
 
 DROPOUT = 0.0
+# 8x8 board + 1 for pass
+OUTPUT_SIZE = 65
 
 class ConvLayer(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, padding):
@@ -25,7 +27,7 @@ class Conv5DuelingNet(torch.nn.Module):
         self.conv4 = ConvLayer(num_channels, num_channels, kernel_size=3, padding=1)
         self.conv5 = ConvLayer(num_channels, num_channels, kernel_size=3, padding=1)
         self.fc1 = torch.nn.Linear(num_channels * 8 * 8, fc_hidden_size)
-        self.fc2_adv = torch.nn.Linear(fc_hidden_size, 64)
+        self.fc2_adv = torch.nn.Linear(fc_hidden_size, OUTPUT_SIZE)
         self.fc2_val = torch.nn.Linear(fc_hidden_size, 1)
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(DROPOUT)
@@ -45,6 +47,6 @@ class Conv5DuelingNet(torch.nn.Module):
         x = self.dropout(x)
 
         adv = self.fc2_adv(x)
-        val = self.fc2_val(x).expand(-1, 64)
+        val = self.fc2_val(x).expand(-1, OUTPUT_SIZE)
 
-        return val + adv - adv.mean(1, keepdim=True).expand(-1, 64)
+        return val + adv - adv.mean(1, keepdim=True).expand(-1, OUTPUT_SIZE)

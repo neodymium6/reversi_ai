@@ -1,5 +1,8 @@
 import torch
 
+# 8x8 board + 1 for pass
+OUTPUT_SIZE = 65
+
 class Conv5Net(torch.nn.Module):
     def __init__(self, num_channels, fc_hidden_size):
         super(Conv5Net, self).__init__()
@@ -14,7 +17,7 @@ class Conv5Net(torch.nn.Module):
         self.conv5 = torch.nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
         self.bn5 = torch.nn.BatchNorm2d(num_channels)
         self.fc1 = torch.nn.Linear(num_channels * 8 * 8, fc_hidden_size)
-        self.fc2 = torch.nn.Linear(fc_hidden_size, 64)
+        self.fc2 = torch.nn.Linear(fc_hidden_size, OUTPUT_SIZE)
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(0.2)
         self.num_channels = num_channels

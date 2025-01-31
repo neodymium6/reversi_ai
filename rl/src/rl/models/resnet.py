@@ -1,5 +1,8 @@
 import torch
 
+# 8x8 board + 1 for pass
+OUTPUT_SIZE = 65
+
 class ResBlock(torch.nn.Module):
     def __init__(self, channels, kernel_size=3, padding=1):
         super(ResBlock, self).__init__()
@@ -25,7 +28,7 @@ class ResNet10(torch.nn.Module):
         self.bn1 = torch.nn.BatchNorm2d(num_channels)
         self.res_blocks = torch.nn.ModuleList([ResBlock(num_channels) for _ in range(10)])
         self.fc1 = torch.nn.Linear(num_channels * 8 * 8, fc_hidden_size)
-        self.fc2_adv = torch.nn.Linear(fc_hidden_size, 64)
+        self.fc2_adv = torch.nn.Linear(fc_hidden_size, OUTPUT_SIZE)
         self.fc2_val = torch.nn.Linear(fc_hidden_size, 1)
         self.num_channels = num_channels
         self.relu = torch.nn.ReLU()
@@ -44,6 +47,6 @@ class ResNet10(torch.nn.Module):
         x = self.relu(x)
 
         adv = self.fc2_adv(x)
-        val = self.fc2_val(x).expand(-1, 64)
+        val = self.fc2_val(x).expand(-1, OUTPUT_SIZE)
 
-        return val + adv - adv.mean(1, keepdim=True).expand(-1, 64)
+        return val + adv - adv.mean(1, keepdim=True).expand(-1, OUTPUT_SIZE)

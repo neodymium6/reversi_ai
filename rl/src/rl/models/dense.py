@@ -1,11 +1,15 @@
 import torch
 
+INPUT_SIZE = 128
+# 8x8 board + 1 for pass
+OUTPUT_SIZE = 65
+
 class DenseNet(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, hidden_size: int):
         super(DenseNet, self).__init__()
-        self.fc1 = torch.nn.Linear(input_size, hidden_size)
+        self.fc1 = torch.nn.Linear(INPUT_SIZE, hidden_size)
         self.fc2 = torch.nn.Linear(hidden_size, hidden_size)
-        self.fc3 = torch.nn.Linear(hidden_size, output_size)
+        self.fc3 = torch.nn.Linear(hidden_size, OUTPUT_SIZE)
         self.relu = torch.nn.ReLU()
         self.dropout = torch.nn.Dropout(0.5)
 
