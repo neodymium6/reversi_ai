@@ -175,6 +175,7 @@ class Agent(ABC):
         ax.plot(optimize_count, ma1000, label="Moving average loss (window=1000)")
         ax.set_xlabel("Optimize count")
         ax.set_ylabel("Loss")
+        ax.set_yscale("log")
         fig.legend()
         plt.savefig("loss.png")
 
