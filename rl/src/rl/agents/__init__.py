@@ -117,7 +117,7 @@ class Agent(ABC):
         target = rewards + self.config["gamma"] * v_ns
 
         if isinstance(self.memory, ProportionalMemory):
-            diff = (q_s_a - target).abs().cpu().numpy().tolist()
+            diff = (q_s_a - target).abs().detach().cpu().numpy().tolist()
             self.memory.update_priorities(indices, diff)
 
         loss: torch.Tensor = self.criterion(q_s_a, target)

@@ -10,7 +10,7 @@ EPISODES_PER_OPTIMIZE = 2
 
 memory_config = MemoryConfig(
     memory_size=EPISODES // 5,
-    memory_type=MemoryType.UNIFORM,
+    memory_type=MemoryType.PROPORTIONAL,
 )
 
 train_config = CnnAgentConfig(
