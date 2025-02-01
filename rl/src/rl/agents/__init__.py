@@ -7,11 +7,13 @@ from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEv
 import torch
 import matplotlib.pyplot as plt
 import tqdm
-from rl.memory import Memory
+from rl.memory import Memory, MemoryConfig, MemoryType
+from rl.memory.proportional import ProportionalMemory
+from rl.memory.simple import SimpleMemory
 from rl.agents.batch_board import BatchBoard
 
 class AgentConfig(TypedDict):
-    memory_size: int
+    memory_config: MemoryConfig
     batch_size: int
     board_batch_size: int
     device: torch.device
@@ -31,11 +33,17 @@ class Agent(ABC):
     def __init__(self, config: AgentConfig):
         self.net: torch.nn.Module = None
         self.target_net: torch.nn.Module = None
-        self.memory: Memory = None
         self.config = config
         self.optimizer: torch.optim.Optimizer = None
         self.criterion: torch.nn.Module = None
         self.losses = []
+        self.memory: Memory = None
+        if config["memory_config"]["memory_type"] == MemoryType.UNIFORM:
+            self.memory = SimpleMemory(config["memory_config"]["memory_size"])
+        elif config["memory_config"]["memory_type"] == MemoryType.PROPORTIONAL:
+            self.memory = ProportionalMemory(config["memory_config"]["memory_size"])
+        else:
+            raise ValueError("Invalid memory type")
 
     def after_init(self):
         self.target_net.load_state_dict(self.net.state_dict())

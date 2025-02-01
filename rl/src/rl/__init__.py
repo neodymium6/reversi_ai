@@ -1,31 +1,37 @@
 import copy
 import torch
 from rl.agents.cnn import CnnAgent, CnnAgentConfig
+from rl.memory import MemoryType, MemoryConfig
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
 EPISODES = 120000
 EPISODES_PER_OPTIMIZE = 2
 
-train_config = CnnAgentConfig(
-        memory_size=EPISODES // 5,
-        batch_size=BATCH_SIZE,
-        board_batch_size=240,
-        device=DEVICE,
-        eps_start=1.0,
-        eps_end=0.05,
-        eps_decay=10,
-        lr=1e-5,
-        gradient_clip=1.0,
-        gamma=0.99,
-        n_episodes=EPISODES,
-        episodes_per_optimize=EPISODES_PER_OPTIMIZE,
-        episodes_per_target_update=EPISODES_PER_OPTIMIZE * 2,
-        verbose=True,
+memory_config = MemoryConfig(
+    memory_size=EPISODES // 5,
+    memory_type=MemoryType.UNIFORM,
+)
 
-        num_channels=64,
-        fc_hidden_size=256,
-        model_path="cnn_agent.pth",
+train_config = CnnAgentConfig(
+    memory_config=memory_config,
+    batch_size=BATCH_SIZE,
+    board_batch_size=240,
+    device=DEVICE,
+    eps_start=1.0,
+    eps_end=0.05,
+    eps_decay=10,
+    lr=1e-5,
+    gradient_clip=1.0,
+    gamma=0.99,
+    n_episodes=EPISODES,
+    episodes_per_optimize=EPISODES_PER_OPTIMIZE,
+    episodes_per_target_update=EPISODES_PER_OPTIMIZE * 2,
+    verbose=True,
+
+    num_channels=64,
+    fc_hidden_size=256,
+    model_path="cnn_agent.pth",
 )
 
 vs_config = copy.deepcopy(train_config)

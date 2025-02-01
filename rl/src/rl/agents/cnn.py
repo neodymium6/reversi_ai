@@ -14,7 +14,6 @@ class CnnAgentConfig(AgentConfig):
 class CnnAgent(QnetAgent):
     def __init__(self, config: CnnAgentConfig):
         super().__init__(config)
-        self.memory = SimpleMemory(config["memory_size"])
         self.net = ResNet10(config["num_channels"], config["fc_hidden_size"])
         self.target_net = ResNet10(config["num_channels"], config["fc_hidden_size"])
         if config["verbose"]:
