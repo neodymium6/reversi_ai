@@ -60,7 +60,7 @@ class Agent(ABC):
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
             total_steps=int(1.1 * self.config["n_episodes"]) // self.config["episodes_per_optimize"],
         )
-        self.criterion = torch.nn.SmoothL1Loss(reduce=False)
+        self.criterion = torch.nn.SmoothL1Loss(reduction="none")
         if self.config["verbose"]:
             pprint(self.config)
 
