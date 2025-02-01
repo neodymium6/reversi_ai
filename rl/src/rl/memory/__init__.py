@@ -17,7 +17,11 @@ class Memory(ABC):
         pass
 
     @abstractmethod
-    def sample(self, batch_size: int) -> List[Tuple[Board, int, Board, float]]:
+    def sample(self, batch_size: int) -> Tuple[List[Tuple[Board, int, Board, float]], List[int]]:
+        """
+        Returns a tuple of (batch, indices) where batch is a list of tuples of (state, action, next_state, reward)
+        and indices is a list of integers that correspond to the indices of the batch in the memory.
+        """
         pass
 
     @abstractmethod

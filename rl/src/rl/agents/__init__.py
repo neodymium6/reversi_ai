@@ -88,7 +88,7 @@ class Agent(ABC):
             return 0.0
         self.net.train()
         self.target_net.eval()
-        batch: List[Tuple[Board, int, Board, float]] = self.memory.sample(self.config["batch_size"])
+        batch, indices = self.memory.sample(self.config["batch_size"])
         states, actions, next_states, rewards = zip(*batch)
         next_states: Tuple[Board, ...] = next_states
         states = torch.stack([self.board_to_input(x) for x in states])
@@ -115,6 +115,11 @@ class Agent(ABC):
             game_overs = torch.tensor([ns.is_game_over() for ns in next_states], dtype=torch.bool, device=self.config["device"])
             v_ns = v_ns.masked_fill(game_overs, 0.0)    # If the game is over, the value of the next state is 0 and the reward is the final reward
         target = rewards + self.config["gamma"] * v_ns
+
+        if isinstance(self.memory, ProportionalMemory):
+            diff = (q_s_a - target).abs().cpu().numpy().tolist()
+            self.memory.update_priorities(indices, diff)
+
         loss: torch.Tensor = self.criterion(q_s_a, target)
         loss_value = loss.item()
         self.optimizer.zero_grad()
