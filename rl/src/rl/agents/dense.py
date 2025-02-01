@@ -13,7 +13,6 @@ class DenseAgentConfig(AgentConfig):
 class DenseAgent(QnetAgent):
     def __init__(self, config: DenseAgentConfig):
         super().__init__(config)
-        self.memory = SimpleMemory(config["memory_size"])
         self.net = DenseNet(config["hidden_size"])
         self.target_net = DenseNet(config["hidden_size"])
         if config["verbose"]:

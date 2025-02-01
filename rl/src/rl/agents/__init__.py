@@ -7,11 +7,13 @@ from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEv
 import torch
 import matplotlib.pyplot as plt
 import tqdm
-from rl.memory import Memory
+from rl.memory import Memory, MemoryConfig, MemoryType
+from rl.memory.proportional import ProportionalMemory
+from rl.memory.simple import SimpleMemory
 from rl.agents.batch_board import BatchBoard
 
 class AgentConfig(TypedDict):
-    memory_size: int
+    memory_config: MemoryConfig
     batch_size: int
     board_batch_size: int
     device: torch.device
@@ -31,11 +33,17 @@ class Agent(ABC):
     def __init__(self, config: AgentConfig):
         self.net: torch.nn.Module = None
         self.target_net: torch.nn.Module = None
-        self.memory: Memory = None
         self.config = config
         self.optimizer: torch.optim.Optimizer = None
         self.criterion: torch.nn.Module = None
         self.losses = []
+        self.memory: Memory = None
+        if config["memory_config"]["memory_type"] == MemoryType.UNIFORM:
+            self.memory = SimpleMemory(config["memory_config"]["memory_size"])
+        elif config["memory_config"]["memory_type"] == MemoryType.PROPORTIONAL:
+            self.memory = ProportionalMemory(config["memory_config"]["memory_size"], config["memory_config"]["alpha"], config["memory_config"]["beta"])
+        else:
+            raise ValueError("Invalid memory type")
 
     def after_init(self):
         self.target_net.load_state_dict(self.net.state_dict())
@@ -52,7 +60,7 @@ class Agent(ABC):
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
             total_steps=int(1.1 * self.config["n_episodes"]) // self.config["episodes_per_optimize"],
         )
-        self.criterion = torch.nn.SmoothL1Loss()
+        self.criterion = torch.nn.SmoothL1Loss(reduction="none")
         if self.config["verbose"]:
             pprint(self.config)
 
@@ -80,7 +88,7 @@ class Agent(ABC):
             return 0.0
         self.net.train()
         self.target_net.eval()
-        batch: List[Tuple[Board, int, Board, float]] = self.memory.sample(self.config["batch_size"])
+        batch, indices, weights = self.memory.sample(self.config["batch_size"])
         states, actions, next_states, rewards = zip(*batch)
         next_states: Tuple[Board, ...] = next_states
         states = torch.stack([self.board_to_input(x) for x in states])
@@ -107,7 +115,13 @@ class Agent(ABC):
             game_overs = torch.tensor([ns.is_game_over() for ns in next_states], dtype=torch.bool, device=self.config["device"])
             v_ns = v_ns.masked_fill(game_overs, 0.0)    # If the game is over, the value of the next state is 0 and the reward is the final reward
         target = rewards + self.config["gamma"] * v_ns
+
+        if isinstance(self.memory, ProportionalMemory):
+            diff = (q_s_a - target).abs().detach().cpu().numpy().tolist()
+            self.memory.update_priorities(indices, diff)
         loss: torch.Tensor = self.criterion(q_s_a, target)
+        loss = loss * torch.tensor(weights, dtype=torch.float32, device=self.config["device"])
+        loss = loss.mean()
         loss_value = loss.item()
         self.optimizer.zero_grad()
         loss.backward()

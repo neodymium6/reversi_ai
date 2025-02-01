@@ -10,7 +10,7 @@ A Reversi AI implementation that combines deep reinforcement learning techniques
   - ResNet architecture for deeper feature extraction
   - Fully Connected Network option for comparison
 - Dueling network architecture that separates state value and action advantage estimation
-- Experience replay memory system for stable learning
+- Experience replay memory system with both uniform and prioritized sampling
 - Efficient batch processing of multiple games simultaneously
 
 ### Training & Evaluation
@@ -72,6 +72,7 @@ rl/
 │   │   ├── dense.py        # Dense network agent
 │   │   └── q_net.py        # Base Q-learning implementation
 │   ├── memory/          # Experience replay system
+│   │   ├── proportional.py  # Prioritized experience replay
 │   │   └── simple.py       # Basic replay buffer
 │   ├── models/          # Neural network architectures
 │   │   ├── cnn.py          # Basic CNN model
@@ -79,6 +80,9 @@ rl/
 │   │   ├── dense.py        # Fully connected network
 │   │   └── resnet.py       # ResNet implementation
 │   └── __init__.py      # Configuration and entry points
+├── tests/              # Test suite
+│   ├── __init__.py
+│   └── test_sumtree.py  # Tests for sum tree data structure
 ```
 
 ## Technical Details
@@ -96,32 +100,43 @@ rl/
 #### Training Configuration
 Default parameters (configurable in `src/rl/__init__.py`):
 ```python
-memory_size = 100000
+# Memory configuration
+memory_config = {
+    'memory_size': 24000,
+    'memory_type': MemoryType.PROPORTIONAL,
+    'alpha': 0.5,
+    'beta': 0.5,
+}
+
+# Training parameters
 batch_size = 512
 board_batch_size = 240
-epsilon_start = 1.0
-epsilon_end = 0.05
-epsilon_decay = 10
+eps_start = 1.0
+eps_end = 0.05
+eps_decay = 10
 learning_rate = 1e-5
+gradient_clip = 1.0
 gamma = 0.99
-n_episodes = 480000
-episodes_per_optimize=16,
-episodes_per_target_update=128,
-num_channels=64,
-fc_hidden_size=256,
+n_episodes = 120000
+episodes_per_optimize = 2
+episodes_per_target_update = 4
+
+# Model parameters
+num_channels = 64
+fc_hidden_size = 256
 ```
 
 ##### Note
 
-* The training ResNet10 with this configuration takes approximately 30 minutes on core i7 13700 and RTX 4070Ti.
-* The win rate against the random player is around 95% after 480,000 episodes.
-
+* The training ResNet10 with this configuration takes approximately 20 minutes on core i7 13700 and RTX 4070Ti.
+* The win rate against the random player is around 95% after training.
 
 ### Experience Replay
-- Dequeue buffer implementation
-- Uniform random sampling
-- Configurable memory size
+- Supports both uniform and prioritized sampling strategies
+- SumTree implementation for efficient prioritized sampling
+- Configurable memory size and priority parameters
 - Supports efficient batch sampling
+- Dynamic priority updates based on TD error
 
 ### Training Process
 
@@ -136,10 +151,11 @@ fc_hidden_size=256,
    - Store transitions in replay memory
 
 3. **Learning**
-   - Sample batches from replay memory
+   - Sample batches from replay memory (uniform or prioritized)
    - Compute Q-learning targets using target network
    - Update policy network via gradient descent
    - Periodically update target network
+   - Update priorities for sampled transitions
 
 4. **Evaluation**
    - Regular evaluation against random and alpha-beta opponents
