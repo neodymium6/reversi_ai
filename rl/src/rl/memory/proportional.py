@@ -15,7 +15,7 @@ class SumTree:
         self.tree = np.zeros(2 * capacity - 1)
         self.length = 0
         self.pointer = 0
-        self.max_p = 0.0
+        self.max_p = EPSILON
 
     def add(self, priority: float) -> None:
         # if the memory is full, replace the oldest memory
@@ -37,8 +37,12 @@ class SumTree:
             self.tree[idx] += change
             idx = (idx - 1) // 2
 
-    def sample_indices(self, batch_size: int) -> List[int]:
+    def sample_indices(self, batch_size: int) -> Tuple[List[int], List[float]]:
+        """
+        Returns a list of indices and a list of weights for the sampled indices.
+        """
         indices = []
+        weights = []
         for _ in range(batch_size):
             rand = np.random.uniform(0, self.tree[0])
             idx = 0
@@ -54,7 +58,8 @@ class SumTree:
                     idx = right
             # idx to memory index
             indices.append(idx - self.capacity + 1)
-        return indices
+            weights.append(1 / self.tree[idx])
+        return indices, weights
     
     def sum(self) -> float:
         return self.tree[0]
@@ -66,7 +71,7 @@ class SumTree:
         return self.max_p
 
 class ProportionalMemory(Memory):
-    def __init__(self, maxlen: int, alpha: float):
+    def __init__(self, maxlen: int, alpha: float, beta: float):
         is_power_of_two = lambda n: (n != 0) and (n & (n - 1) == 0)
         if not is_power_of_two(maxlen):
             maxlen = 2 ** (maxlen.bit_length())
@@ -75,15 +80,20 @@ class ProportionalMemory(Memory):
         self.tree = SumTree(maxlen)
         self.memory = [None] * maxlen
         self.alpha = alpha
+        self.beta = beta
 
     def push(self, state: Board, action: int, next_state: Board, reward: float) -> None:
         max_priority = self.tree.max()
         self.memory[self.tree.pointer] = (state, action, next_state, reward)
         self.tree.add(max_priority ** self.alpha)
 
-    def sample(self, batch_size) -> Tuple[List[Tuple[Board, int, Board, float]], List[int]]:
-        indices = self.tree.sample_indices(batch_size)
-        return [self.memory[i] for i in indices], indices
+    def sample(self, batch_size) -> Tuple[List[Tuple[Board, int, Board, float]], List[int], List[float]]:
+        indices, weights = self.tree.sample_indices(batch_size)
+        weights = [w ** self.beta for w in weights]
+        # normalize weights
+        mean = np.mean(weights)
+        weights = [w / mean for w in weights]
+        return [self.memory[i] for i in indices], indices, weights
     
     def update_priorities(self, indices: List[int], priorities: List[float]) -> None:
         priorities = np.array(priorities) + EPSILON

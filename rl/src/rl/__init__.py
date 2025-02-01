@@ -12,6 +12,7 @@ memory_config = MemoryConfig(
     memory_size=EPISODES // 5,
     memory_type=MemoryType.PROPORTIONAL,
     alpha=0.5,
+    beta=0.5,
 )
 
 train_config = CnnAgentConfig(

@@ -41,7 +41,7 @@ class Agent(ABC):
         if config["memory_config"]["memory_type"] == MemoryType.UNIFORM:
             self.memory = SimpleMemory(config["memory_config"]["memory_size"])
         elif config["memory_config"]["memory_type"] == MemoryType.PROPORTIONAL:
-            self.memory = ProportionalMemory(config["memory_config"]["memory_size"], config["memory_config"]["alpha"])
+            self.memory = ProportionalMemory(config["memory_config"]["memory_size"], config["memory_config"]["alpha"], config["memory_config"]["beta"])
         else:
             raise ValueError("Invalid memory type")
 
@@ -60,7 +60,7 @@ class Agent(ABC):
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
             total_steps=int(1.1 * self.config["n_episodes"]) // self.config["episodes_per_optimize"],
         )
-        self.criterion = torch.nn.SmoothL1Loss()
+        self.criterion = torch.nn.SmoothL1Loss(reduce=False)
         if self.config["verbose"]:
             pprint(self.config)
 
@@ -88,7 +88,7 @@ class Agent(ABC):
             return 0.0
         self.net.train()
         self.target_net.eval()
-        batch, indices = self.memory.sample(self.config["batch_size"])
+        batch, indices, weights = self.memory.sample(self.config["batch_size"])
         states, actions, next_states, rewards = zip(*batch)
         next_states: Tuple[Board, ...] = next_states
         states = torch.stack([self.board_to_input(x) for x in states])
@@ -119,8 +119,9 @@ class Agent(ABC):
         if isinstance(self.memory, ProportionalMemory):
             diff = (q_s_a - target).abs().detach().cpu().numpy().tolist()
             self.memory.update_priorities(indices, diff)
-
         loss: torch.Tensor = self.criterion(q_s_a, target)
+        loss = loss * torch.tensor(weights, dtype=torch.float32, device=self.config["device"])
+        loss = loss.mean()
         loss_value = loss.item()
         self.optimizer.zero_grad()
         loss.backward()

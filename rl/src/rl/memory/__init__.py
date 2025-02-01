@@ -11,6 +11,7 @@ class MemoryConfig(TypedDict):
     memory_size: int
     memory_type: MemoryType
     alpha: float
+    beta: float
 
 class Memory(ABC):
     @abstractmethod
@@ -18,10 +19,12 @@ class Memory(ABC):
         pass
 
     @abstractmethod
-    def sample(self, batch_size: int) -> Tuple[List[Tuple[Board, int, Board, float]], List[int]]:
+    def sample(self, batch_size: int) -> Tuple[List[Tuple[Board, int, Board, float]], List[int], List[float]]:
         """
-        Returns a tuple of (batch, indices) where batch is a list of tuples of (state, action, next_state, reward)
-        and indices is a list of integers that correspond to the indices of the batch in the memory.
+        Returns a tuple of a list of samples, a list of indices, and a list of weights.
+        The list of samples is a list of tuples of (state, action, next_state, reward).
+        The list of indices is a list of indices that were sampled.
+        The list of weights is a list of weights for the samples
         """
         pass
 

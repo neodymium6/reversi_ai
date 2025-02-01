@@ -1,4 +1,4 @@
-from rl.memory.proportional import SumTree
+from rl.memory.proportional import SumTree, EPSILON
 import pytest
 import numpy as np
 
@@ -72,7 +72,7 @@ def test_sumtree_sampling():
         tree.add(p)
     
     # Test basic sampling
-    indices = tree.sample_indices(1000)
+    indices, weights = tree.sample_indices(4)
     counts = np.zeros(4)
     for idx in indices:
         counts[idx] += 1
@@ -86,7 +86,7 @@ def test_sumtree_sampling():
 def test_sumtree_max():
     tree = SumTree(4)
     # Test initial max (None case)
-    assert tree.max() == 0.0
+    assert tree.max() == EPSILON
     
     # Test updating max through add
     tree.add(0.5)

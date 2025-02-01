@@ -11,9 +11,9 @@ class SimpleMemory(Memory):
     def push(self, state: Board, action: int, next_state: Board, reward: float) -> None:
         self.memory.append((state, action, next_state, reward))
 
-    def sample(self, batch_size) -> Tuple[List[Tuple[Board, int, Board, float]], List[int]]:
+    def sample(self, batch_size) -> Tuple[List[Tuple[Board, int, Board, float]], List[int], List[float]]:
         indices = random.sample(range(len(self.memory)), batch_size)
-        return [self.memory[i] for i in indices], indices
+        return [self.memory[i] for i in indices], indices, [1.0 for _ in range(batch_size)]
     
     def __len__(self) -> int:
         return len(self.memory)
