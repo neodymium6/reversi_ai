@@ -66,7 +66,7 @@ class SumTree:
         return self.max_p
 
 class ProportionalMemory(Memory):
-    def __init__(self, maxlen: int):
+    def __init__(self, maxlen: int, alpha: float):
         is_power_of_two = lambda n: (n != 0) and (n & (n - 1) == 0)
         if not is_power_of_two(maxlen):
             maxlen = 2 ** (maxlen.bit_length())
@@ -74,11 +74,12 @@ class ProportionalMemory(Memory):
         self.capacity = maxlen
         self.tree = SumTree(maxlen)
         self.memory = [None] * maxlen
+        self.alpha = alpha
 
     def push(self, state: Board, action: int, next_state: Board, reward: float) -> None:
         max_priority = self.tree.max()
         self.memory[self.tree.pointer] = (state, action, next_state, reward)
-        self.tree.add(max_priority)
+        self.tree.add(max_priority ** self.alpha)
 
     def sample(self, batch_size) -> Tuple[List[Tuple[Board, int, Board, float]], List[int]]:
         indices = self.tree.sample_indices(batch_size)
@@ -87,7 +88,7 @@ class ProportionalMemory(Memory):
     def update_priorities(self, indices: List[int], priorities: List[float]) -> None:
         priorities = np.array(priorities) + EPSILON
         for i, priority in zip(indices, priorities):
-            self.tree.update(i, priority)
+            self.tree.update(i, priority ** self.alpha)
 
     def __len__(self) -> int:
         return len(self.tree)

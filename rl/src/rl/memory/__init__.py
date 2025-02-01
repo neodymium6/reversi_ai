@@ -10,6 +10,7 @@ class MemoryType(Enum):
 class MemoryConfig(TypedDict):
     memory_size: int
     memory_type: MemoryType
+    alpha: float
 
 class Memory(ABC):
     @abstractmethod

@@ -41,7 +41,7 @@ class Agent(ABC):
         if config["memory_config"]["memory_type"] == MemoryType.UNIFORM:
             self.memory = SimpleMemory(config["memory_config"]["memory_size"])
         elif config["memory_config"]["memory_type"] == MemoryType.PROPORTIONAL:
-            self.memory = ProportionalMemory(config["memory_config"]["memory_size"])
+            self.memory = ProportionalMemory(config["memory_config"]["memory_size"], config["memory_config"]["alpha"])
         else:
             raise ValueError("Invalid memory type")
 
