@@ -2,7 +2,7 @@ from pprint import pprint
 import random
 from typing import Tuple, TypedDict
 import numpy as np
-from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEvaluator, ThunderSearch
+from rust_reversi import AlphaBetaSearch, Board, Turn, WinrateEvaluator, ThunderSearch, MctsSearch, MatrixEvaluator
 import torch
 import matplotlib.pyplot as plt
 import tqdm
@@ -147,15 +147,20 @@ class Agent():
 
             if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:
-                    win_rate = self.vs_random(1000)
-                    print(f"Episode {i * self.config['board_batch_size']}: Win rate vs random = {win_rate}")
+                    win_rate1 = self.vs_random(1000)
+                    win_rate2 = self.vs_alpha_beta(1000)
+                    win_rate3 = self.vs_mcts(1000)
+                    print(f"Episode {i * self.config['board_batch_size']}")
+                    print(f"Win rate vs random = {win_rate1}, Win rate vs alpha beta = {win_rate2}, Win rate vs mcts = {win_rate3}")
                 if i != 0:
                     self.save()
                     self.plot()
         if self.config["verbose"]:
             print("Training finished")
-            win_rate = self.vs_random(1000)
-            print(f"Win rate vs random = {win_rate}")
+            win_rate1 = self.vs_random(1000)
+            win_rate2 = self.vs_alpha_beta(1000)
+            win_rate3 = self.vs_mcts(1000)
+            print(f"Win rate vs random = {win_rate1}, Win rate vs alpha beta = {win_rate2}, Win rate vs mcts = {win_rate3}")
         self.save()
         self.plot()
 
@@ -233,8 +238,66 @@ class Agent():
             print("Vs AlphaBeta")
         self.net_driver.net.eval()
         def two_game():
-            evaluator = PieceEvaluator()
-            search = AlphaBetaSearch(evaluator, 3, 1 << 10)
+            evaluator = MatrixEvaluator([
+                [ 40,   1,  4,  0,  0,  4,   1, 40],
+                [  1, -12, -8, -6, -6, -8, -12,  1],
+                [  4,  -8, -1,  0,  0, -1,  -8,  4],
+                [  0,  -6,  0,  0,  0,  0,  -6,  0],
+                [  0,  -6,  0,  0,  0,  0,  -6,  0],
+                [  4,  -8, -1,  0,  0, -1,  -8,  4],
+                [  1, -12, -8, -6, -6, -8, -12,  1],
+                [ 40,   1,  4,  0,  0,  4,   1, 40],
+            ])
+            search = AlphaBetaSearch(evaluator, 4, 1 << 10)
+            win_count = 0
+            # agent is black
+            board = Board()
+            while not board.is_game_over():
+                if board.is_pass():
+                    board.do_pass()
+                    continue
+                if random.random() < epsilon:
+                    action = board.get_random_move()
+                    board.do_move(action)
+                    continue
+                if board.get_turn() == Turn.BLACK:
+                    action = self.net_driver.get_action(board, 0.0)
+                else:
+                    action = search.get_move(board)
+                board.do_move(action)
+            if board.is_black_win():
+                win_count += 1
+            # agent is white
+            board = Board()
+            while not board.is_game_over():
+                if board.is_pass():
+                    board.do_pass()
+                    continue
+                if random.random() < epsilon:
+                    action = board.get_random_move()
+                    board.do_move(action)
+                    continue
+                if board.get_turn() == Turn.WHITE:
+                    action = self.net_driver.get_action(board, 0.0)
+                else:
+                    action = search.get_move(board)
+                board.do_move(action)
+            if board.is_white_win():
+                win_count += 1
+            return win_count
+    
+        win_count = 0
+        for _ in range(n_games // 2):
+            win_count += two_game()
+        win_rate = win_count / n_games
+        return win_rate
+
+    def vs_mcts(self, n_games: int, epsilon: float = 0.1) -> float:
+        if self.config["verbose"]:
+            print("Vs MCTS")
+        self.net_driver.net.eval()
+        def two_game():
+            search = MctsSearch(100, 1.0, 3)
             win_count = 0
             # agent is black
             board = Board()
@@ -309,7 +372,16 @@ class Agent():
         net_evaluator = NetEvaluator()
         net_evaluator.set_agent(self)
         thunder_search = ThunderSearch(net_evaluator, 100, 0.01)
-        piece_evaluator = PieceEvaluator()
+        piece_evaluator = MatrixEvaluator([
+            [ 40,   1,  4,  0,  0,  4,   1, 40],
+            [  1, -12, -8, -6, -6, -8, -12,  1],
+            [  4,  -8, -1,  0,  0, -1,  -8,  4],
+            [  0,  -6,  0,  0,  0,  0,  -6,  0],
+            [  0,  -6,  0,  0,  0,  0,  -6,  0],
+            [  4,  -8, -1,  0,  0, -1,  -8,  4],
+            [  1, -12, -8, -6, -6, -8, -12,  1],
+            [ 40,   1,  4,  0,  0,  4,   1, 40],
+        ])
         alpha_beta_search = AlphaBetaSearch(piece_evaluator, 3, 1 << 10)
         def two_game():
             win_count = 0
