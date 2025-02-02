@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
 from pprint import pprint
 import random
-from typing import List, Tuple, TypedDict
+from typing import Tuple, TypedDict
 import numpy as np
 from rust_reversi import AlphaBetaSearch, Board, PieceEvaluator, Turn, WinrateEvaluator, ThunderSearch
 import torch
@@ -11,9 +10,13 @@ from rl.memory import Memory, MemoryConfig, MemoryType
 from rl.memory.proportional import ProportionalMemory
 from rl.memory.simple import SimpleMemory
 from rl.agents.batch_board import BatchBoard
+from rl.agents.net_driver import NetDriver, NetConfig, NetType
+from rl.agents.net_driver.dense import DenseDriver
+from rl.agents.net_driver.cnn import CnnDriver
 
 class AgentConfig(TypedDict):
     memory_config: MemoryConfig
+    net_config: NetConfig
     batch_size: int
     board_batch_size: int
     n_board_init_random_moves: int
@@ -28,59 +31,38 @@ class AgentConfig(TypedDict):
     n_episodes: int
     steps_per_optimize: int
     optimize_per_target_update: int
-    model_path: str
     verbose: bool
+    model_path: str
 
-class Agent(ABC):
+class Agent():
     def __init__(self, config: AgentConfig):
-        self.net: torch.nn.Module = None
-        self.target_net: torch.nn.Module = None
         self.config = config
-        self.optimizer: torch.optim.Optimizer = None
-        self.criterion: torch.nn.Module = None
         self.losses = []
         self.memory: Memory = None
+        self.net_driver: NetDriver = None
+        if config["net_config"]["net_type"] == NetType.Dense:
+            self.net_driver = DenseDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
+        elif config["net_config"]["net_type"] == NetType.Conv5 or config["net_config"]["net_type"] == NetType.Conv5Dueling or config["net_config"]["net_type"] == NetType.RESNET10:
+            self.net_driver = CnnDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
+        else:
+            raise ValueError("Invalid net type")
+
         if config["memory_config"]["memory_type"] == MemoryType.UNIFORM:
             self.memory = SimpleMemory(config["memory_config"]["memory_size"])
         elif config["memory_config"]["memory_type"] == MemoryType.PROPORTIONAL:
             self.memory = ProportionalMemory(config["memory_config"]["memory_size"], config["memory_config"]["alpha"], config["memory_config"]["beta"])
         else:
             raise ValueError("Invalid memory type")
-
-    def after_init(self):
-        self.target_net.load_state_dict(self.net.state_dict())
-        self.net.to(self.config["device"])
-        self.target_net.to(self.config["device"])
-        if self.config["verbose"]:
-            for param in self.net.parameters():
-                print(f"Device: {param.device}")
-                break
-        self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.config["lr"])
+        self.optimizer = torch.optim.AdamW(self.net_driver.net.parameters(), lr=config["lr"])
+        self.criterion: torch.nn.Module = torch.nn.SmoothL1Loss(reduction="none")
         self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             self.optimizer,
             max_lr=self.config["lr"] * 10,
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
             total_steps=int(1.1 * self.config["n_episodes"] * 60 / (self.config["steps_per_optimize"] * self.config["board_batch_size"])),
         )
-        self.criterion = torch.nn.SmoothL1Loss(reduction="none")
         if self.config["verbose"]:
             pprint(self.config)
-
-    @abstractmethod
-    def get_action(self, board: Board, episoide: int) -> int:
-        pass
-
-    @abstractmethod
-    def get_action_batch(self, boards: List[Board], episoide: int) -> List[int]:
-        pass
-
-    @abstractmethod
-    def board_to_input(self, board: Board) -> torch.Tensor:
-        pass
-
-    @abstractmethod
-    def update_target_net(self):
-        pass
 
     def get_epsilon(self, episode: int) -> float:
         return self.config["eps_start"] + (self.config["eps_end"] - self.config["eps_start"]) * (1 - np.exp(-episode * self.config["eps_decay"] / 1000))
@@ -88,21 +70,21 @@ class Agent(ABC):
     def optimize(self) -> float:
         if len(self.memory) < self.config["batch_size"]:
             return 0.0
-        self.net.train()
-        self.target_net.eval()
+        self.net_driver.net.train()
+        self.net_driver.target_net.eval()
         batch, indices, weights = self.memory.sample(self.config["batch_size"])
         states, actions, next_states, rewards = zip(*batch)
         next_states: Tuple[Board, ...] = next_states
-        states = torch.stack([self.board_to_input(x) for x in states])
+        states = torch.stack([self.net_driver.board_to_input(x) for x in states])
         states = states.to(self.config["device"])
-        next_states_t = torch.stack([self.board_to_input(x) for x in next_states])
+        next_states_t = torch.stack([self.net_driver.board_to_input(x) for x in next_states])
         next_states_t = next_states_t.to(self.config["device"])
         actions = torch.tensor(actions, dtype=torch.int64, device=self.config["device"])
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.config["device"])
-        q_s: torch.Tensor = self.net(states)
+        q_s: torch.Tensor = self.net_driver.net(states)
         q_s_a = q_s.gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
-            q_ns: torch.Tensor = self.target_net(next_states_t)
+            q_ns: torch.Tensor = self.net_driver.target_net(next_states_t)
             # 64th element is pass
             # pass is only legal when the player has no legal moves
             legal_actions: torch.Tensor = torch.tensor(
@@ -127,7 +109,7 @@ class Agent(ABC):
         loss_value = loss.item()
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_value_(self.net.parameters(), self.config["gradient_clip"])
+        torch.nn.utils.clip_grad_value_(self.net_driver.net.parameters(), self.config["gradient_clip"])
         self.optimizer.step()
         self.lr_scheduler.step()
         return loss_value
@@ -149,7 +131,7 @@ class Agent(ABC):
                     board_batch.do_random_move()
                 else:
                     states = board_batch.get_boards()
-                    actions = self.get_action_batch(states, i * self.config["board_batch_size"])
+                    actions = self.net_driver.get_action_batch(states, self.get_epsilon(i * self.config["board_batch_size"]))
                     next_states, rewards = board_batch.do_move(actions)
                     for state, action, next_state, reward in zip(states, actions, next_states, rewards):
                         self.memory.push(state, action, next_state, reward)
@@ -161,7 +143,7 @@ class Agent(ABC):
                     self.losses.append((optimize_count, loss))
 
                 if optimize_count % self.config["optimize_per_target_update"] == 0:
-                    self.update_target_net()
+                    self.net_driver.update_target_net()
 
             if i % (iter_size // 10) == 0:
                 if self.config["verbose"]:
@@ -178,9 +160,7 @@ class Agent(ABC):
         self.plot()
 
     def save(self):
-        if self.config["verbose"]:
-            print(f"Saving model to {self.config['model_path']}")
-        torch.save(self.net.state_dict(), self.config["model_path"])
+        self.net_driver.save(self.config["model_path"])
 
     def plot(self):
         def calculate_moving_average(data, window_size):
@@ -206,12 +186,12 @@ class Agent(ABC):
         plt.savefig("loss.png")
 
     def load(self, path: str):
-        self.net.load_state_dict(torch.load(path, weights_only=True))
+        self.net_driver.load(path)
 
     def vs_random(self, n_games: int) -> float:
         if self.config["verbose"]:
             print("Vs Random")
-        self.net.eval()
+        self.net_driver.net.eval()
         def two_game():
             win_count = 0
             # agent is black
@@ -221,7 +201,7 @@ class Agent(ABC):
                     board.do_pass()
                     continue
                 if board.get_turn() == Turn.BLACK:
-                    action = self.get_action(board, 1 << 10)
+                    action = self.net_driver.get_action(board, 0.0)
                 else:
                     action = board.get_random_move()
                 board.do_move(action)
@@ -234,7 +214,7 @@ class Agent(ABC):
                     board.do_pass()
                     continue
                 if board.get_turn() == Turn.WHITE:
-                    action = self.get_action(board, 1 << 10)
+                    action = self.net_driver.get_action(board, 0.0)
                 else:
                     action = board.get_random_move()
                 board.do_move(action)
@@ -251,7 +231,7 @@ class Agent(ABC):
     def vs_alpha_beta(self, n_games: int, epsilon: float = 0.1) -> float:
         if self.config["verbose"]:
             print("Vs AlphaBeta")
-        self.net.eval()
+        self.net_driver.net.eval()
         def two_game():
             evaluator = PieceEvaluator()
             search = AlphaBetaSearch(evaluator, 3, 1 << 10)
@@ -267,7 +247,7 @@ class Agent(ABC):
                     board.do_move(action)
                     continue
                 if board.get_turn() == Turn.BLACK:
-                    action = self.get_action(board, 1 << 10)
+                    action = self.net_driver.get_action(board, 0.0)
                 else:
                     action = search.get_move(board)
                 board.do_move(action)
@@ -284,7 +264,7 @@ class Agent(ABC):
                     board.do_move(action)
                     continue
                 if board.get_turn() == Turn.WHITE:
-                    action = self.get_action(board, 1 << 10)
+                    action = self.net_driver.get_action(board, 0.0)
                 else:
                     action = search.get_move(board)
                 board.do_move(action)
@@ -299,11 +279,11 @@ class Agent(ABC):
         return win_rate
     
     def evaluate(self, board: Board) -> float:
-        self.net.eval()
-        board_tensor = self.board_to_input(board)
+        self.net_driver.net.eval()
+        board_tensor = self.net_driver.board_to_input(board)
         board_tensor = board_tensor.to(self.config["device"])
         with torch.no_grad():
-            out: torch.Tensor = self.net(board_tensor)
+            out: torch.Tensor = self.net_driver.net(board_tensor)
         legal_actions: torch.Tensor = torch.tensor(
             board.get_legal_moves_tf() + [board.is_pass()],
             dtype=torch.bool,
@@ -319,13 +299,13 @@ class Agent(ABC):
             print("Thunder vs AlphaBeta")
         class NetEvaluator(WinrateEvaluator):
             def __init__(self):
-                self.agent = None
+                self.agent: Agent = None
                 super().set_py_evaluator(self)
             def set_agent(self, agent):
                 self.agent = agent
             def evaluate(self, board: Board) -> float:
                 return self.agent.evaluate(board)
-        self.net.eval()
+        self.net_driver.net.eval()
         net_evaluator = NetEvaluator()
         net_evaluator.set_agent(self)
         thunder_search = ThunderSearch(net_evaluator, 100, 0.01)
