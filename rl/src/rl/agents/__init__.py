@@ -16,6 +16,8 @@ class AgentConfig(TypedDict):
     memory_config: MemoryConfig
     batch_size: int
     board_batch_size: int
+    n_board_init_random_moves: int
+    p_board_init_random_moves: float
     device: torch.device
     eps_start: float
     eps_end: float
@@ -142,12 +144,15 @@ class Agent(ABC):
             board_batch = BatchBoard(self.config["board_batch_size"])
 
             while not board_batch.is_game_over():
-                states = board_batch.get_boards()
-                actions = self.get_action_batch(states, i * self.config["board_batch_size"])
-                next_states, rewards = board_batch.do_move(actions)
-
-                for state, action, next_state, reward in zip(states, actions, next_states, rewards):
-                    self.memory.push(state, action, next_state, reward)
+                # Randomly initialize the board for the first few moves
+                if board_batch.get_piece_mean() < self.config["n_board_init_random_moves"] and random.random() < self.config["p_board_init_random_moves"]:
+                    board_batch.do_random_move()
+                else:
+                    states = board_batch.get_boards()
+                    actions = self.get_action_batch(states, i * self.config["board_batch_size"])
+                    next_states, rewards = board_batch.do_move(actions)
+                    for state, action, next_state, reward in zip(states, actions, next_states, rewards):
+                        self.memory.push(state, action, next_state, reward)
                 step_count += 1
 
                 scale = 100

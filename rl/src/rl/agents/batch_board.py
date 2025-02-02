@@ -36,6 +36,21 @@ class BatchBoard:
                 new_boards.append(board.clone())
         self.boards = new_boards
         return next_boards, rewards
+    
+    def do_random_move(self):
+        new_boards = []
+        for board in self.boards:
+            if board.is_pass():
+                board.do_pass()
+            else:
+                move = board.get_random_move()
+                board.do_move(move)
+            if not board.is_game_over():
+                new_boards.append(board.clone())
+        self.boards = new_boards
 
     def is_game_over(self) -> bool:
         return len(self.boards) == 0
+    
+    def get_piece_mean(self) -> float:
+        return sum([board.piece_sum() for board in self.boards]) / len(self.boards)
