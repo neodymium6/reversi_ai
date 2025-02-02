@@ -1,20 +1,22 @@
 from rust_reversi import Board
+from typing import List, Tuple
 
 class BatchBoard:
     def __init__(self, batch_size: int):
         self.batch_size = batch_size
-        self.boards: list[Board] = [Board() for _ in range(batch_size)]
+        self.boards: List[Board] = [Board() for _ in range(batch_size)]
+        self.finished: List[bool] = [False for _ in range(batch_size)]
 
-    def get_boards(self) -> list[Board]:
+    def get_boards(self) -> List[Board]:
         return [board.clone() for board in self.boards]
 
-    def do_move(self, moves: list[int]) -> tuple[list[Board], list[float]]:
+    def do_move(self, moves: List[int]) -> Tuple[List[Board], List[float]]:
         # list for self.boards that are not game over
-        new_boards = []
+        new_boards = [None] * self.batch_size
         # return new_boards, rewards
         next_boards = []
         rewards = []
-        for board, move in zip(self.boards, moves):
+        for i, board, move in zip(range(self.batch_size), self.boards, moves):
             if move == 64:
                 board.do_pass()
             else:
@@ -30,27 +32,33 @@ class BatchBoard:
                 else:
                     # draw
                     rewards.append(0.5)
+                # pad new board for optimization with same batch size
+                new_boards[i] = Board()
+                self.finished[i] = True
             else:
                 rewards.append(0.0)
-                # only append if not game over
-                new_boards.append(board.clone())
+                new_boards[i] = board.clone()
         self.boards = new_boards
         return next_boards, rewards
     
     def do_random_move(self):
-        new_boards = []
-        for board in self.boards:
+        new_boards = [None] * self.batch_size
+        for i, board in enumerate(self.boards):
             if board.is_pass():
                 board.do_pass()
             else:
                 move = board.get_random_move()
                 board.do_move(move)
-            if not board.is_game_over():
-                new_boards.append(board.clone())
+            if board.is_game_over():
+                # pad new board for optimization with same batch size
+                new_boards[i] = Board()
+                self.finished[i] = True
+            else:
+                new_boards[i] = board.clone()
         self.boards = new_boards
 
     def is_game_over(self) -> bool:
-        return len(self.boards) == 0
+        return all(self.finished)
     
     def get_piece_mean(self) -> float:
         return sum([board.piece_sum() for board in self.boards]) / len(self.boards)
