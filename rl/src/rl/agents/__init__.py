@@ -145,22 +145,22 @@ class Agent():
                 if optimize_count % self.config["optimize_per_target_update"] == 0:
                     self.net_driver.update_target_net()
 
-            if i % (iter_size // 10) == 0:
+            if i % (iter_size // 5) == 0:
                 if self.config["verbose"]:
                     win_rate1 = self.vs_random(1000)
-                    win_rate2 = self.vs_alpha_beta(1000)
-                    win_rate3 = self.vs_mcts(1000)
+                    win_rate2 = self.vs_mcts(1000)
+                    win_rate3 = self.vs_alpha_beta(1000)
                     print(f"Episode {i * self.config['board_batch_size']}")
-                    print(f"Win rate vs random = {win_rate1}, Win rate vs alpha beta = {win_rate2}, Win rate vs mcts = {win_rate3}")
+                    print(f"Win rate vs random = {win_rate1}, Win rate vs mcts = {win_rate2}, Win rate vs alpha beta = {win_rate3}")
                 if i != 0:
                     self.save()
                     self.plot()
         if self.config["verbose"]:
             print("Training finished")
             win_rate1 = self.vs_random(1000)
-            win_rate2 = self.vs_alpha_beta(1000)
-            win_rate3 = self.vs_mcts(1000)
-            print(f"Win rate vs random = {win_rate1}, Win rate vs alpha beta = {win_rate2}, Win rate vs mcts = {win_rate3}")
+            win_rate2 = self.vs_mcts(1000)
+            win_rate3 = self.vs_alpha_beta(1000)
+            print(f"Win rate vs random = {win_rate1}, Win rate vs mcts = {win_rate2}, Win rate vs alpha beta = {win_rate3}")
         self.save()
         self.plot()
 
