@@ -26,8 +26,8 @@ class AgentConfig(TypedDict):
     gradient_clip: float
     gamma: float
     n_episodes: int
-    episodes_per_optimize: int
-    episodes_per_target_update: int
+    steps_per_optimize: int
+    optimize_per_target_update: int
     model_path: str
     verbose: bool
 
@@ -60,7 +60,7 @@ class Agent(ABC):
             self.optimizer,
             max_lr=self.config["lr"] * 10,
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
-            total_steps=int(1.1 * self.config["n_episodes"]) // self.config["episodes_per_optimize"],
+            total_steps=int(1.1 * self.config["n_episodes"] * 60 / (self.config["steps_per_optimize"] * self.config["board_batch_size"])),
         )
         self.criterion = torch.nn.SmoothL1Loss(reduction="none")
         if self.config["verbose"]:
@@ -155,14 +155,12 @@ class Agent(ABC):
                         self.memory.push(state, action, next_state, reward)
                 step_count += 1
 
-                scale = 100
-                memory_size_per_episode = 60
-                if scale * step_count % (scale * memory_size_per_episode * self.config["episodes_per_optimize"] // self.config["board_batch_size"]) == 0:
+                if step_count % self.config["steps_per_optimize"] == 0:
                     loss = self.optimize()
                     optimize_count += 1
                     self.losses.append((optimize_count, loss))
 
-                if scale * step_count % (scale * memory_size_per_episode * self.config["episodes_per_target_update"] // self.config["board_batch_size"]) == 0:
+                if optimize_count % self.config["optimize_per_target_update"] == 0:
                     self.update_target_net()
 
             if i % (iter_size // 10) == 0:

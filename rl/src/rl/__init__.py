@@ -6,7 +6,6 @@ from rl.memory import MemoryType, MemoryConfig
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
 EPISODES = 120000
-EPISODES_PER_OPTIMIZE = 2
 
 memory_config = MemoryConfig(
     memory_size=EPISODES // 5,
@@ -29,8 +28,8 @@ train_config = CnnAgentConfig(
     gradient_clip=1.0,
     gamma=0.99,
     n_episodes=EPISODES,
-    episodes_per_optimize=EPISODES_PER_OPTIMIZE,
-    episodes_per_target_update=EPISODES_PER_OPTIMIZE * 2,
+    steps_per_optimize=1,
+    optimize_per_target_update=1,
     verbose=True,
 
     num_channels=64,
