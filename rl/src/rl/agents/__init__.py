@@ -42,7 +42,7 @@ class Agent():
         self.net_driver: NetDriver = None
         if config["net_config"]["net_type"] == NetType.Dense:
             self.net_driver = DenseDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
-        elif config["net_config"]["net_type"] == NetType.Conv5 or config["net_config"]["net_type"] == NetType.Conv5Dueling or config["net_config"]["net_type"] == NetType.RESNET10:
+        elif config["net_config"]["net_type"] == NetType.Conv5 or config["net_config"]["net_type"] == NetType.Conv5Dueling or config["net_config"]["net_type"] == NetType.RESNET10 or config["net_config"]["net_type"] == NetType.Transformer:
             self.net_driver = CnnDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
         else:
             raise ValueError("Invalid net type")

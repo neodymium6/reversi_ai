@@ -6,6 +6,7 @@ from rl.agents.net_driver import NetConfig, NetType
 from rl.models.resnet import ResNet10
 from rl.models.cnn_dueling import Conv5DuelingNet
 from rl.models.cnn import Conv5Net
+from rl.models.transformer import Transformer
 
 class CnnConfig(NetConfig):
     num_channels: int
@@ -23,6 +24,9 @@ class CnnDriver(QnetDriver):
         elif config["net_type"] == NetType.Conv5:
             self.net = Conv5Net(config["num_channels"], config["fc_hidden_size"])
             self.target_net = Conv5Net(config["num_channels"], config["fc_hidden_size"])
+        elif config["net_type"] == NetType.Transformer:
+            self.net = Transformer()
+            self.target_net = Transformer()
         else:
             raise ValueError(f"Invalid net type: {config['net_type']}")
         if verbose:

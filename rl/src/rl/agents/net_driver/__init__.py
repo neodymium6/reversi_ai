@@ -4,13 +4,12 @@ from rust_reversi import Board
 from typing import List, TypedDict
 from enum import Enum
 
-import torchinfo
-
 class NetType(Enum):
     RESNET10 = 0
     Conv5Dueling = 1
     Conv5 = 2
     Dense = 3
+    Transformer = 4
 
 class NetConfig(TypedDict):
     net_type: NetType

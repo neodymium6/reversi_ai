@@ -20,7 +20,7 @@ memory_config = MemoryConfig(
 net_config = CnnConfig(
     num_channels=64,
     fc_hidden_size=256,
-    net_type=NetType.RESNET10,
+    net_type=NetType.Transformer,
 )
 
 # net_config = DenseConfig(
