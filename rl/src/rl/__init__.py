@@ -55,6 +55,9 @@ vs_config["eps_end"] = 0.0
 vs_config["verbose"] = False
 
 def train():
+    if DEVICE == torch.device("cuda"):
+        torch.set_float32_matmul_precision("high")
+        print(f"Using CUDA, setting float32_matmul_precision to high")
     train_agent = Agent(train_config)
     train_agent.train()
 
