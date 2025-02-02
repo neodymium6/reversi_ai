@@ -29,15 +29,15 @@ A Reversi AI implementation that combines deep reinforcement learning techniques
 
 ## Requirements
 
-- Python 3.13 or higher
+- Python 3.13 or higher (required)
 - CUDA-capable GPU (optional but recommended)
-- Core dependencies:　See `pyproject.toml` for full list
+- Core dependencies: See `pyproject.toml` for full list
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone git@github.com:neodymium6/rust_reversi.git
+   git clone git@github.com:neodymium6/reversi_ai.git
    cd reversi_ai/rl
    ```
 
@@ -68,9 +68,10 @@ rl/
 ├── src/rl/
 │   ├── agents/          # AI agent implementations
 │   │   ├── batch_board.py   # Efficient batch game processing
-│   │   ├── cnn.py          # CNN-based agent
-│   │   ├── dense.py        # Dense network agent
-│   │   └── q_net.py        # Base Q-learning implementation
+│   │   └── net_driver/      # Neural network driver implementations
+│   │       ├── cnn.py       # CNN network driver
+│   │       ├── dense.py     # Dense network driver
+│   │       └── q_net.py     # Base Q-learning driver
 │   ├── memory/          # Experience replay system
 │   │   ├── proportional.py  # Prioritized experience replay
 │   │   └── simple.py       # Basic replay buffer
@@ -98,38 +99,57 @@ rl/
 - ReLU activation functions
 
 #### Training Configuration
-Default parameters (configurable in `src/rl/__init__.py`):
-```python
-# Memory configuration
-memory_config = {
-    'memory_size': 24000,
-    'memory_type': MemoryType.PROPORTIONAL,
-    'alpha': 0.5,
-    'beta': 0.5,
-}
 
+Default parameters (from `src/rl/__init__.py`):
+
+```python
 # Training parameters
-batch_size = 512
-board_batch_size = 240
-eps_start = 1.0
-eps_end = 0.05
-eps_decay = 10
-learning_rate = 1e-5
-gradient_clip = 1.0
-gamma = 0.99
-n_episodes = 120000
-episodes_per_optimize = 2
-episodes_per_target_update = 4
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+EPISODES = 120000
+BATCH_SIZE = 512
+
+# Memory configuration
+memory_config = MemoryConfig(
+    memory_size=EPISODES // 5,  # Automatically scaled with total episodes
+    memory_type=MemoryType.PROPORTIONAL,
+    alpha=0.5,
+    beta=0.5,
+)
 
 # Model parameters
-num_channels = 64
-fc_hidden_size = 256
+net_config = CnnConfig(
+    num_channels=64,
+    fc_hidden_size=256,
+    net_type=NetType.RESNET10,
+)
+
+train_config = AgentConfig(
+    memory_config=memory_config,
+    net_config=net_config,
+    batch_size=BATCH_SIZE,
+    board_batch_size=240,
+    n_board_init_random_moves=10,
+    p_board_init_random_moves=0.5,
+    device=DEVICE,
+    eps_start=1.0,
+    eps_end=0.05,
+    eps_decay=10,
+    lr=1e-5,
+    gradient_clip=1.0,
+    gamma=0.99,
+    n_episodes=EPISODES,
+    steps_per_optimize=1,
+    optimize_per_target_update=1,
+    verbose=True,
+    model_path="cnn_agent.pth",
+)
 ```
 
-##### Note
+#### Note
 
-* The training ResNet10 with this configuration takes approximately 20 minutes on core i7 13700 and RTX 4070Ti.
-* The win rate against the random player is around 95% after training.
+* Training time will vary significantly depending on your hardware configuration.
+* The win rate against the random player is around 95% after successful training.
+* In my environment (RTX 4070Ti), training the ResNet model for 120,000 episodes took around 20 minutes.
 
 ### Experience Replay
 - Supports both uniform and prioritized sampling strategies
