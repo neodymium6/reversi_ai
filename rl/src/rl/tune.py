@@ -10,7 +10,6 @@ from rl.agents.net_driver import NetType
 from rl.agents.net_driver.cnn import CnnConfig
 from rl.memory import MemoryType, MemoryConfig
 from pathlib import Path
-import time
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
@@ -21,12 +20,10 @@ STEPS_PER_OPTIMIZE = 1
 OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
-STUDY_NAME = "config_tuning"
+STUDY_NAME = "config_tuning_v2"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/{STUDY_NAME}.db"
 N_TRIALS = 60
 RANDOM_SEED = 42
-
-DELETE_WAIT = 10
 
 EVAL_N_GAMES = 1000
 EVAL_WEIGHTS = {
@@ -37,9 +34,12 @@ EVAL_WEIGHTS = {
 
 def get_config(trial: Trial) -> AgentConfig:
     trial_dir = Path(TUNE_DIR) / f"trial_{trial.number}"
-    memory_ratio = trial.suggest_float("memory_ratio", 0.05, 0.3)
-    alpha = trial.suggest_float("alpha", 0.3, 0.8)
-    beta = trial.suggest_float("beta", 0.3, 0.8)
+    # 1 episode = approximately 60 moves (exept pass moves and early game end)
+    # Total experiences during training will be approximately 60 * EPISODES
+    # memory_ratio determines what fraction of total experiences we keep
+    memory_ratio = trial.suggest_float("memory_ratio", 0.05, 10.0)
+    alpha = trial.suggest_float("alpha", 0.0, 1.0)
+    beta = trial.suggest_float("beta", 0.0, 1.0)
     memory_config = MemoryConfig(
         memory_size=int(EPISODES * memory_ratio),
         memory_type=MemoryType.PROPORTIONAL,
@@ -51,13 +51,13 @@ def get_config(trial: Trial) -> AgentConfig:
         fc_hidden_size=256,
         net_type=NetType.Transformer,
     )
-    n_board_init_random_moves = trial.suggest_int("n_board_init_random_moves", 10, 20)
-    p_board_init_random_moves = trial.suggest_float("p_board_init_random_moves", 0.3, 0.9)
-    eps_end = trial.suggest_float("eps_end", 0.01, 0.05)
-    eps_decay = trial.suggest_int("eps_decay", 5, 15)
-    lr = trial.suggest_float("lr", 5e-6, 1e-4, log=True)
-    gradient_clip = trial.suggest_float("gradient_clip", 0.5, 2.0)
-    gamma = trial.suggest_float("gamma", 0.97, 0.999)
+    n_board_init_random_moves = trial.suggest_int("n_board_init_random_moves", 4, 30)
+    p_board_init_random_moves = trial.suggest_float("p_board_init_random_moves", 0.0, 1.0)
+    eps_end = trial.suggest_float("eps_end", 0.01, 0.1)
+    eps_decay = trial.suggest_int("eps_decay", 5, 30)
+    lr = trial.suggest_float("lr", 1e-6, 5e-4, log=True)
+    gradient_clip = trial.suggest_float("gradient_clip", 0.1, 5.0)
+    gamma = trial.suggest_float("gamma", 0.95, 0.9999)
     config = AgentConfig(
         memory_config=memory_config,
         net_config=net_config,
