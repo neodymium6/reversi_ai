@@ -20,17 +20,27 @@ STEPS_PER_OPTIMIZE = 1
 OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
-STUDY_NAME = "config_tuning_v2"
+STUDY_NAME = "config_tuning_v4"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/{STUDY_NAME}.db"
 N_TRIALS = 60
 RANDOM_SEED = 42
+N_STARTUP_TRIALS = 5
+N_WARMUP_STEPS = 3
+N_REPORTS = 10
 
 EVAL_N_GAMES = 1000
 EVAL_WEIGHTS = {
     "random": 0.1,
-    "alpha_beta": 0.7,
     "mcts": 0.2,
+    "alpha_beta": 0.7,
 }
+
+def calculate_score(random_win_rate: float, mcts_win_rate: float, alpha_beta_win_rate: float) -> float:
+    return (
+        random_win_rate * EVAL_WEIGHTS["random"] +
+        mcts_win_rate * EVAL_WEIGHTS["mcts"] +
+        alpha_beta_win_rate * EVAL_WEIGHTS["alpha_beta"]
+    )
 
 def get_config(trial: Trial) -> AgentConfig:
     trial_dir = Path(TUNE_DIR) / f"trial_{trial.number}"
@@ -102,57 +112,62 @@ def objective(trial: Trial) -> float:
     try:
         # Train the agent
         print("Training agent...")
-        agent.train()
+        n_games_mid = 300
+        n_games_end = 1000
+        for (i, metric) in enumerate(agent.train_iter(n_reports=N_REPORTS, n_games_mid=n_games_mid, n_games_end=n_games_end)):
+            random_win_rate = metric["vs_random"]
+            mcts_win_rate = metric["vs_mcts"]
+            alpha_beta_win_rate = metric["vs_alpha_beta"]
+            episode = metric["episode"]
+            print(f"Episode {episode}: Random win rate: {random_win_rate:.3f}, MCTS win rate: {mcts_win_rate:.3f}, Alpha-beta win rate: {alpha_beta_win_rate:.3f}")
+            score = calculate_score(random_win_rate, mcts_win_rate, alpha_beta_win_rate)
+            print(f"Score: {score:.3f}")
 
-        # Evaluate against different opponents
-        print("Evaluating against random opponent...")
-        random_win_rate = agent.vs_random(EVAL_N_GAMES)
-        print(f"Random win rate: {random_win_rate:.3f}")
-        
-        print("Evaluating against alpha-beta opponent...")
-        alpha_beta_win_rate = agent.vs_alpha_beta(EVAL_N_GAMES)
-        print(f"Alpha-beta win rate: {alpha_beta_win_rate:.3f}")
-        
-        print("Evaluating against MCTS opponent...")
-        mcts_win_rate = agent.vs_mcts(EVAL_N_GAMES)
-        print(f"MCTS win rate: {mcts_win_rate:.3f}")
-        
-        # Store metrics
-        trial.set_user_attr("random_win_rate", random_win_rate)
-        trial.set_user_attr("alpha_beta_win_rate", alpha_beta_win_rate)
-        trial.set_user_attr("mcts_win_rate", mcts_win_rate)
-        
-        # Combined score (weighted average)
-        score = (
-            random_win_rate * EVAL_WEIGHTS["random"] +
-            alpha_beta_win_rate * EVAL_WEIGHTS["alpha_beta"] +
-            mcts_win_rate * EVAL_WEIGHTS["mcts"]
-        )
+            if i != N_REPORTS - 1:
+                trial.report(score, step=episode)
+                if trial.should_prune():
+                    print("Trial pruned")
+                    pruned_results = {
+                        "random_win_rate": random_win_rate,
+                        "alpha_beta_win_rate": alpha_beta_win_rate,
+                        "mcts_win_rate": mcts_win_rate,
+                        "score": score,
+                        "datetime": datetime.now().isoformat()
+                    }
+                    with open(trial_dir / "pruned_results.json", "w") as f:
+                        json.dump(pruned_results, f, indent=2)
+                    raise optuna.exceptions.TrialPruned()
+            else:
+                # final iteration
 
-        # Save trial results
-        trial_results = {
-            "random_win_rate": random_win_rate,
-            "alpha_beta_win_rate": alpha_beta_win_rate,
-            "mcts_win_rate": mcts_win_rate,
-            "score": score,
-            "datetime": datetime.now().isoformat()
-        }
-        with open(trial_dir / "trial_results.json", "w") as f:
-            json.dump(trial_results, f, indent=2)
+                # Store final win rates
+                trial.set_user_attr("random_win_rate", random_win_rate)
+                trial.set_user_attr("mcts_win_rate", mcts_win_rate)
+                trial.set_user_attr("alpha_beta_win_rate", alpha_beta_win_rate)
+                
+                # Save trial results
+                trial_results = {
+                    "random_win_rate": random_win_rate,
+                    "alpha_beta_win_rate": alpha_beta_win_rate,
+                    "mcts_win_rate": mcts_win_rate,
+                    "score": score,
+                    "datetime": datetime.now().isoformat()
+                }
+                with open(trial_dir / "trial_results.json", "w") as f:
+                    json.dump(trial_results, f, indent=2)
 
-        print(f"Trial {trial.number} score: {score:.3f}")
-
-        # Clean up
-        del agent
-        torch.cuda.empty_cache()
-        return score
+                print(f"Trial {trial.number} score: {score:.3f}")
+                return score
     
+    except optuna.exceptions.TrialPruned:
+        raise
     except Exception as e:
+        print(f"Trial {trial.number} failed: {str(e)}")
+        raise
+    finally:
         # Clean up
         del agent
         torch.cuda.empty_cache()
-        print(f"Trial {trial.number} failed: {str(e)}")
-        raise optuna.exceptions.TrialPruned()
 
 def tune(resume: bool):
     if DEVICE == torch.device("cuda"):
@@ -167,6 +182,7 @@ def tune(resume: bool):
                 study_name=STUDY_NAME,
                 storage=STORAGE_URL,
                 sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
+                pruner=optuna.pruners.MedianPruner(n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_WARMUP_STEPS),
             )
             print(f"Loaded existing study with {len(study.trials)} trials")
         except Exception as e:
@@ -182,6 +198,7 @@ def tune(resume: bool):
                 storage=STORAGE_URL,
                 direction="maximize",
                 sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
+                pruner=optuna.pruners.MedianPruner(n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_WARMUP_STEPS),
                 load_if_exists=False,
             )
         except optuna.exceptions.DuplicatedStudyError:
