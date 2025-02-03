@@ -190,6 +190,7 @@ class Agent():
         ax.set_yscale("log")
         fig.legend()
         plt.savefig("loss.png")
+        plt.close(fig)
 
     def load(self, path: str):
         self.net_driver.load(path)
