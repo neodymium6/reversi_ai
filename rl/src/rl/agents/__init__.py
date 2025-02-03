@@ -115,7 +115,7 @@ class Agent():
         self.lr_scheduler.step()
         return loss_value
 
-    def train(self):
+    def train_iter(self, n_reports: int = 6):
         iter_size = self.config["n_episodes"] // self.config["board_batch_size"]
         optimize_count = 0
         step_count = 0
@@ -146,24 +146,43 @@ class Agent():
                 if optimize_count % self.config["optimize_per_target_update"] == 0:
                     self.net_driver.update_target_net()
 
-            if i % (iter_size // 5) == 0:
-                if self.config["verbose"]:
-                    win_rate1 = self.vs_random(1000)
-                    win_rate2 = self.vs_mcts(1000)
-                    win_rate3 = self.vs_alpha_beta(1000)
-                    print(f"Episode {i * self.config['board_batch_size']}")
-                    print(f"Win rate vs random = {win_rate1}, Win rate vs mcts = {win_rate2}, Win rate vs alpha beta = {win_rate3}")
-                if i != 0:
-                    self.save()
-                    self.plot()
-        if self.config["verbose"]:
-            print("Training finished")
-            win_rate1 = self.vs_random(1000)
-            win_rate2 = self.vs_mcts(1000)
-            win_rate3 = self.vs_alpha_beta(1000)
-            print(f"Win rate vs random = {win_rate1}, Win rate vs mcts = {win_rate2}, Win rate vs alpha beta = {win_rate3}")
+            if i != 0 and i % (iter_size // 5) == 0:
+                self.save()
+                self.plot()
+            if i % (iter_size // (n_reports - 1)) == 0:
+                win_rate1 = self.vs_random(1000)
+                win_rate2 = self.vs_mcts(1000)
+                win_rate3 = self.vs_alpha_beta(1000)
+                metrics = {
+                    "episode": i * self.config["board_batch_size"],
+                    "vs_random": win_rate1,
+                    "vs_mcts": win_rate2,
+                    "vs_alpha_beta": win_rate3,
+                }
+                yield metrics
+        win_rate1 = self.vs_random(1000)
+        win_rate2 = self.vs_mcts(1000)
+        win_rate3 = self.vs_alpha_beta(1000)
+        metrics = {
+            "episode": self.config["n_episodes"],
+            "vs_random": win_rate1,
+            "vs_mcts": win_rate2,
+            "vs_alpha_beta": win_rate3,
+        }
+        yield metrics
         self.save()
         self.plot()
+
+    def train(self):
+        if self.config["verbose"]:
+            print("Training started")
+            for metrics in self.train_iter(n_reports=6):
+                print(f"Episode {metrics['episode']}")
+                print(f"Win rate vs Random: {metrics['vs_random']:.3f}, vs MCTS: {metrics['vs_mcts']:.3f}, vs AlphaBeta: {metrics['vs_alpha_beta']:.3f}")
+            print("Training finished")
+        else:
+            for metrics in self.train_iter(n_reports=0):
+                pass
 
     def save(self):
         self.net_driver.save(self.config["model_path"])
