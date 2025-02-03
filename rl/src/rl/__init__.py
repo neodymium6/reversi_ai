@@ -5,10 +5,13 @@ from rl.agents.net_driver import NetType
 from rl.agents.net_driver.cnn import CnnConfig
 from rl.agents.net_driver.dense import DenseConfig
 from rl.memory import MemoryType, MemoryConfig
+from rl import tune as tuning
+import sys
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
 EPISODES = 120000
+BATCH_BOARD_SIZE = 240
 
 memory_config = MemoryConfig(
     memory_size=EPISODES // 5,
@@ -32,7 +35,7 @@ train_config = AgentConfig(
     memory_config=memory_config,
     net_config=net_config,
     batch_size=BATCH_SIZE,
-    board_batch_size=240,
+    board_batch_size=BATCH_BOARD_SIZE,
     n_board_init_random_moves=14,
     p_board_init_random_moves=0.8,
     device=DEVICE,
@@ -73,3 +76,16 @@ def vs_alpha_beta():
     vs_agent.load(vs_agent.config["model_path"])
     win_rate = vs_agent.thunder_vs_alpha_beta(1000)
     print(f"Win rate: {win_rate}")
+
+def tune():
+    if len(sys.argv) > 2:
+        print("Usage: uv run tune [--resume (optional)]")
+        raise ValueError(f"Invalid arguments: {sys.argv[1:]}")
+    resume = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--resume":
+            resume = True
+        else:
+            print("Usage: uv run tune [--resume (optional)]")
+            raise ValueError(f"Invalid argument: {sys.argv[1]}")
+    tuning.tune(resume=resume)

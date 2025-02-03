@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "matplotlib>=3.10.0",
     "numpy>=2.2.2",
+    "optuna>=4.2.0",
     "rust-reversi>=1.4.4",
     "torch>=2.5.1",
     "torchinfo>=1.8.0",
@@ -14,10 +15,11 @@ dependencies = [
 ]
 
 [project.scripts]
+
 train = "rl:train"
 vs_random = "rl:vs_random"
 vs_alpha_beta = "rl:vs_alpha_beta"
-
+tune = "rl:tune"
 
 [build-system]
 requires = ["hatchling"]
