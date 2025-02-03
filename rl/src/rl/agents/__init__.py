@@ -115,7 +115,7 @@ class Agent():
         self.lr_scheduler.step()
         return loss_value
 
-    def train_iter(self, n_reports: int = 6):
+    def train_iter(self, n_reports: int = 6, n_games_mid: int = 1000, n_games_end: int = 1000):
         iter_size = self.config["n_episodes"] // self.config["board_batch_size"]
         optimize_count = 0
         step_count = 0
@@ -150,9 +150,9 @@ class Agent():
                 self.save()
                 self.plot()
             if i % (iter_size // (n_reports - 1)) == 0:
-                win_rate1 = self.vs_random(1000)
-                win_rate2 = self.vs_mcts(1000)
-                win_rate3 = self.vs_alpha_beta(1000)
+                win_rate1 = self.vs_random(n_games_mid)
+                win_rate2 = self.vs_mcts(n_games_mid)
+                win_rate3 = self.vs_alpha_beta(n_games_mid)
                 metrics = {
                     "episode": i * self.config["board_batch_size"],
                     "vs_random": win_rate1,
@@ -160,9 +160,9 @@ class Agent():
                     "vs_alpha_beta": win_rate3,
                 }
                 yield metrics
-        win_rate1 = self.vs_random(1000)
-        win_rate2 = self.vs_mcts(1000)
-        win_rate3 = self.vs_alpha_beta(1000)
+        win_rate1 = self.vs_random(n_games_end)
+        win_rate2 = self.vs_mcts(n_games_end)
+        win_rate3 = self.vs_alpha_beta(n_games_end)
         metrics = {
             "episode": self.config["n_episodes"],
             "vs_random": win_rate1,
