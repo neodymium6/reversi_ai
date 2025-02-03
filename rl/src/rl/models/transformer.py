@@ -10,7 +10,7 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, x):
         # Input:  (batch_size, 2, 8, 8)
-        # Output: (batch_size, 16, 128)
+        # Output: (batch_size, (8 // patch_size) ** 2, embed_dim)
         x: torch.Tensor = self.projection(x)
         x = x.flatten(2).transpose(1, 2)
         return x
@@ -27,8 +27,8 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(embed_dim, embed_dim)
 
     def forward(self, x: torch.Tensor):
-        # Input:  (batch_size, 16, 128)
-        # Output: (batch_size, 16, 128)
+        # Input:  (batch_size, (8 // patch_size) ** 2, embed_dim)
+        # Output: (batch_size, (8 // patch_size) ** 2, embed_dim)
         batch_size, n_patches, embed_dim = x.shape
         qkv: torch.Tensor = self.qkv(x)
         qkv: torch.Tensor = qkv.reshape(batch_size, n_patches, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
@@ -66,8 +66,8 @@ class Transformer(nn.Module):
                  in_channels=2,
                  embed_dim=128,
                  num_heads=4,
-                 num_layers=6,
-                 mlp_ratio=4.0,
+                 num_layers=8,
+                 mlp_ratio=2.0,
                  dropout=0.0):
         super().__init__()
         self.patch_embed = PatchEmbedding(patch_size, in_channels, embed_dim)
