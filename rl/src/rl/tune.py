@@ -176,20 +176,20 @@ def tune(resume: bool):
 
     if not resume:
         print("Creating new study...")
-        print(f"Warming: old study will be deleted in {DELETE_WAIT} seconds")
-        print("Press Ctrl+C to cancel")
-        time.sleep(DELETE_WAIT)
-        db_path = Path(STORAGE_URL.replace("sqlite:///", ""))
-        if db_path.exists():
-            db_path.unlink()
-            print("Deleted old study database")
-        study = optuna.create_study(
-            study_name=STUDY_NAME,
-            storage=STORAGE_URL,
-            direction="maximize",
-            sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
-            load_if_exists=False,
-        )
+        try:
+            study = optuna.create_study(
+                study_name=STUDY_NAME,
+                storage=STORAGE_URL,
+                direction="maximize",
+                sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
+                load_if_exists=False,
+            )
+        except optuna.exceptions.DuplicatedStudyError:
+            print("Study name already exists although the study was not resumed")
+            print("If you want to resume the study, use the --resume flag")
+            print("If you want to create a new study, change the study name or delete the existing study")
+            raise optuna.exceptions.DuplicatedStudyError
+
     study.optimize(objective, n_trials=N_TRIALS, n_jobs=1)
 
     print("\nBest trial:")
