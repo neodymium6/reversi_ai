@@ -60,6 +60,7 @@ class Agent():
             max_lr=self.config["lr"] * 10,
             # multiply by 1.1 because of increase of states by pass action (game may not end in 60 moves)
             total_steps=int(1.1 * self.config["n_episodes"] * 60 / (self.config["steps_per_optimize"] * self.config["board_batch_size"])),
+            final_div_factor=1e7,
         )
         if self.config["verbose"]:
             pprint(self.config)
