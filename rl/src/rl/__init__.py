@@ -6,7 +6,7 @@ from rl.agents.net_driver.cnn import CnnConfig
 from rl.agents.net_driver.dense import DenseConfig
 from rl.agents.net_driver.transformer import TransformerConfig
 from rl.memory import MemoryType, MemoryConfig
-from rl import tune as tuning
+from rl import tuning
 import sys
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
