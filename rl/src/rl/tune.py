@@ -126,9 +126,9 @@ def objective(trial: Trial) -> float:
             print(f"Episode {episode}: Random win rate: {random_win_rate:.3f}, MCTS win rate: {mcts_win_rate:.3f}, Alpha-beta win rate: {alpha_beta_win_rate:.3f}")
             score = calculate_score(random_win_rate, mcts_win_rate, alpha_beta_win_rate)
             print(f"Score: {score:.3f}")
+            trial.report(score, step=episode)
 
             if i != N_REPORTS - 1:
-                trial.report(score, step=episode)
                 if trial.should_prune():
                     print("Trial pruned")
                     pruned_results = {
