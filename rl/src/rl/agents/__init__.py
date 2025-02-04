@@ -13,6 +13,7 @@ from rl.agents.batch_board import BatchBoard
 from rl.agents.net_driver import NetDriver, NetConfig, NetType
 from rl.agents.net_driver.dense import DenseDriver
 from rl.agents.net_driver.cnn import CnnDriver
+from rl.agents.net_driver.transformer import TransformerDriver
 
 class AgentConfig(TypedDict):
     memory_config: MemoryConfig
@@ -42,8 +43,10 @@ class Agent():
         self.net_driver: NetDriver = None
         if config["net_config"]["net_type"] == NetType.Dense:
             self.net_driver = DenseDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
-        elif config["net_config"]["net_type"] == NetType.Conv5 or config["net_config"]["net_type"] == NetType.Conv5Dueling or config["net_config"]["net_type"] == NetType.RESNET10 or config["net_config"]["net_type"] == NetType.Transformer:
+        elif config["net_config"]["net_type"] == NetType.Conv5 or config["net_config"]["net_type"] == NetType.Conv5Dueling or config["net_config"]["net_type"] == NetType.RESNET10:
             self.net_driver = CnnDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
+        elif config["net_config"]["net_type"] == NetType.Transformer:
+            self.net_driver = TransformerDriver(config["verbose"], config["device"], config["net_config"], config["batch_size"])
         else:
             raise ValueError("Invalid net type")
 

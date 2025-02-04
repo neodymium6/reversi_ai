@@ -63,14 +63,13 @@ class TransformerBlock(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, 
                  patch_size=2,
-                 in_channels=2,
                  embed_dim=128,
                  num_heads=4,
                  num_layers=8,
                  mlp_ratio=2.0,
                  dropout=0.0):
         super().__init__()
-        self.patch_embed = PatchEmbedding(patch_size, in_channels, embed_dim)
+        self.patch_embed = PatchEmbedding(patch_size, 2, embed_dim)
         
         # Position embeddings for 16 patches (8x8 board with 2x2 patches)
         self.pos_embed = nn.Parameter(torch.zeros(1, (8 // patch_size) ** 2, embed_dim))
@@ -95,7 +94,7 @@ class Transformer(nn.Module):
             nn.Linear(256, 65)  # 64 positions + 1 pass move
         )
         
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         if len(x.shape) == 3:
             x = x.unsqueeze(0)
 
