@@ -29,10 +29,14 @@ N_WARMUP_STEPS = 3
 N_REPORTS = 11
 
 EVAL_N_GAMES = 1000
+# Weights for evaluation metrics
+# We prioritize MCTS (0.6) as it provides a more reliable and generalizable measure of strength
+# Alpha-beta (0.3) is strong but depends on the specific evaluation function used
+# Random (0.1) serves as a baseline to ensure basic competency
 EVAL_WEIGHTS = {
     "random": 0.1,
-    "mcts": 0.2,
-    "alpha_beta": 0.7,
+    "mcts": 0.6,
+    "alpha_beta": 0.3,
 }
 
 def calculate_score(random_win_rate: float, mcts_win_rate: float, alpha_beta_win_rate: float) -> float:
