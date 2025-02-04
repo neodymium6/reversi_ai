@@ -10,6 +10,11 @@ from rl.agents.net_driver import NetType
 from rl.agents.net_driver.transformer import TransformerConfig
 from rl.memory import MemoryType, MemoryConfig
 from pathlib import Path
+from enum import Enum
+
+class TuneTarget(Enum):
+    ARCHITECTURE = 1
+    ENVIRONMENT = 2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
@@ -20,7 +25,8 @@ STEPS_PER_OPTIMIZE = 1
 OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
-STUDY_NAME = "config_tuning_v4"
+TUNE_TARGET = TuneTarget.ENVIRONMENT
+STUDY_NAME = f"transformer_{TUNE_TARGET.name.lower()}_study_v1"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/optuna.db"
 N_TRIALS = 1000
 RANDOM_SEED = 42
@@ -47,50 +53,94 @@ def calculate_score(random_win_rate: float, mcts_win_rate: float, alpha_beta_win
         alpha_beta_win_rate * EVAL_WEIGHTS["alpha_beta"]
     )
 
+def get_arch_params(trial: Trial) -> dict:
+    # tune architecture and lr, grad_clip
+    if TUNE_TARGET == TuneTarget.ARCHITECTURE:
+        return {
+            "patch_size": trial.suggest_int("patch_size", 2, 4),
+            "embed_dim": trial.suggest_int("embed_dim", 64, 256),
+            "num_heads": trial.suggest_int("num_heads", 2, 8),
+            "num_layers": trial.suggest_int("num_layers", 4, 12),
+            "mlp_ratio": trial.suggest_float("mlp_ratio", 1.0, 4.0),
+            "dropout": trial.suggest_float("dropout", 0.0, 0.3),
+            "lr": trial.suggest_float("lr", 1e-6, 1e-3, log=True),
+            "gradient_clip": trial.suggest_float("gradient_clip", 0.1, 5.0),
+        }
+    else:
+        # return default values
+        return {
+            "patch_size": 2,
+            "embed_dim": 128,
+            "num_heads": 4,
+            "num_layers": 8,
+            "mlp_ratio": 2.0,
+            "dropout": 0.0,
+            "lr": 2e-5,
+            "gradient_clip": 1.0,
+        }
+    
+def get_env_params(trial: Trial) -> dict:
+    # tune env params
+    if TUNE_TARGET == TuneTarget.ENVIRONMENT:
+        # 1 episode = approximately 60 moves (exept pass moves and early game end)
+        # Total experiences during training will be approximately 60 * EPISODES
+        # memory_ratio determines what fraction of total experiences we keep in memory
+        return {
+            "memory_ratio": trial.suggest_float("memory_ratio", 0.05, 10.0),
+            "alpha": trial.suggest_float("alpha", 0.0, 1.0),
+            "beta": trial.suggest_float("beta", 0.0, 1.0),
+            "n_board_init_random_moves": trial.suggest_int("n_board_init_random_moves", 4, 30),
+            "p_board_init_random_moves": trial.suggest_float("p_board_init_random_moves", 0.0, 1.0),
+            "eps_end": trial.suggest_float("eps_end", 0.01, 0.1),
+            "eps_decay": trial.suggest_int("eps_decay", 5, 50),
+            "gamma": trial.suggest_float("gamma", 0.95, 0.9999),
+        }
+    else:
+        # return default values
+        return {
+            "memory_ratio": 2.0,
+            "alpha": 0.75,
+            "beta": 0.5,
+            "n_board_init_random_moves": 14,
+            "p_board_init_random_moves": 0.8,
+            "eps_end": 0.03,
+            "eps_decay": 20,
+            "gamma": 0.995,
+        }     
+
 def get_config(trial: Trial) -> AgentConfig:
     trial_dir = Path(TUNE_DIR) / f"trial_{trial.number}"
-    # 1 episode = approximately 60 moves (exept pass moves and early game end)
-    # Total experiences during training will be approximately 60 * EPISODES
-    # memory_ratio determines what fraction of total experiences we keep
-    memory_ratio = trial.suggest_float("memory_ratio", 0.05, 10.0)
-    alpha = trial.suggest_float("alpha", 0.0, 1.0)
-    beta = trial.suggest_float("beta", 0.0, 1.0)
+    env_params = get_env_params(trial)
     memory_config = MemoryConfig(
-        memory_size=int(EPISODES * memory_ratio),
+        memory_size=int(EPISODES * env_params["memory_ratio"]),
         memory_type=MemoryType.PROPORTIONAL,
-        alpha=alpha,
-        beta=beta,
+        alpha=env_params["alpha"],
+        beta=env_params["beta"],
     )
+    arch_params = get_arch_params(trial)
     net_config = TransformerConfig(
         net_type=NetType.Transformer,
-        patch_size=2,
-        embed_dim=128,
-        num_heads=4,
-        num_layers=8,
-        mlp_ratio=2.0,
-        dropout=0.0,
+        patch_size=arch_params["patch_size"],
+        embed_dim=arch_params["embed_dim"],
+        num_heads=arch_params["num_heads"],
+        num_layers=arch_params["num_layers"],
+        mlp_ratio=arch_params["mlp_ratio"],
+        dropout=arch_params["dropout"],
     )
-    n_board_init_random_moves = trial.suggest_int("n_board_init_random_moves", 4, 30)
-    p_board_init_random_moves = trial.suggest_float("p_board_init_random_moves", 0.0, 1.0)
-    eps_end = trial.suggest_float("eps_end", 0.01, 0.1)
-    eps_decay = trial.suggest_int("eps_decay", 5, 30)
-    lr = trial.suggest_float("lr", 1e-6, 5e-4, log=True)
-    gradient_clip = trial.suggest_float("gradient_clip", 0.1, 5.0)
-    gamma = trial.suggest_float("gamma", 0.95, 0.9999)
     config = AgentConfig(
         memory_config=memory_config,
         net_config=net_config,
         batch_size=BATCH_SIZE,
         board_batch_size=BOARD_BATCH_SIZE,
-        n_board_init_random_moves=n_board_init_random_moves,
-        p_board_init_random_moves=p_board_init_random_moves,
+        n_board_init_random_moves=env_params["n_board_init_random_moves"],
+        p_board_init_random_moves=env_params["p_board_init_random_moves"],
         device=DEVICE,
         eps_start=1.0,
-        eps_end=eps_end,
-        eps_decay=eps_decay,
-        lr=lr,
-        gradient_clip=gradient_clip,
-        gamma=gamma,
+        eps_end=env_params["eps_end"],
+        eps_decay=env_params["eps_decay"],
+        lr=arch_params["lr"],
+        gradient_clip=arch_params["gradient_clip"],
+        gamma=env_params["gamma"],
         n_episodes=EPISODES,
         steps_per_optimize=STEPS_PER_OPTIMIZE,
         optimize_per_target_update=OPTIMIZE_PER_TARGET_UPDATE,
