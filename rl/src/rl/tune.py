@@ -7,7 +7,7 @@ import os
 import torch
 from rl.agents import AgentConfig, Agent
 from rl.agents.net_driver import NetType
-from rl.agents.net_driver.cnn import CnnConfig
+from rl.agents.net_driver.transformer import TransformerConfig
 from rl.memory import MemoryType, MemoryConfig
 from pathlib import Path
 
@@ -56,10 +56,14 @@ def get_config(trial: Trial) -> AgentConfig:
         alpha=alpha,
         beta=beta,
     )
-    net_config = CnnConfig(
-        num_channels=64,
-        fc_hidden_size=256,
+    net_config = TransformerConfig(
         net_type=NetType.Transformer,
+        patch_size=2,
+        embed_dim=128,
+        num_heads=4,
+        num_layers=8,
+        mlp_ratio=2.0,
+        dropout=0.0,
     )
     n_board_init_random_moves = trial.suggest_int("n_board_init_random_moves", 4, 30)
     p_board_init_random_moves = trial.suggest_float("p_board_init_random_moves", 0.0, 1.0)
