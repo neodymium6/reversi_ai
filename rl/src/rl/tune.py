@@ -21,7 +21,7 @@ OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
 STUDY_NAME = "config_tuning_v4"
-STORAGE_URL = f"sqlite:///{TUNE_DIR}/{STUDY_NAME}.db"
+STORAGE_URL = f"sqlite:///{TUNE_DIR}/optuna.db"
 N_TRIALS = 1000
 RANDOM_SEED = 42
 N_STARTUP_TRIALS = 5
