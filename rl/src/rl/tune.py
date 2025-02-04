@@ -106,6 +106,19 @@ def save_trial_info(trial: Trial, filepath: str):
     with open(filepath, 'w') as f:
         json.dump(trial_info, f, indent=2)
 
+def save_trial_results(metric: dict, trial_dir: Path, is_pruned: bool = False):
+    """Save trial results to a JSON file"""
+    trial_results = {
+        "random_win_rate": metric["vs_random"],
+        "mcts_win_rate": metric["vs_mcts"],
+        "alpha_beta_win_rate": metric["vs_alpha_beta"],
+        "score": calculate_score(metric["vs_random"], metric["vs_mcts"], metric["vs_alpha_beta"]),
+        "datetime": datetime.now().isoformat()
+    }
+    filename = "pruned_results.json" if is_pruned else "trial_results.json"
+    with open(trial_dir / filename, "w") as f:
+        json.dump(trial_results, f, indent=2)
+
 def objective(trial: Trial) -> float:
     print(f"\nStarting Trial {trial.number}")
     trial_dir = Path(TUNE_DIR) / f"trial_{trial.number}"
@@ -131,15 +144,7 @@ def objective(trial: Trial) -> float:
             if i != N_REPORTS - 1:
                 if trial.should_prune():
                     print("Trial pruned")
-                    pruned_results = {
-                        "random_win_rate": random_win_rate,
-                        "alpha_beta_win_rate": alpha_beta_win_rate,
-                        "mcts_win_rate": mcts_win_rate,
-                        "score": score,
-                        "datetime": datetime.now().isoformat()
-                    }
-                    with open(trial_dir / "pruned_results.json", "w") as f:
-                        json.dump(pruned_results, f, indent=2)
+                    save_trial_results(metric, trial_dir, is_pruned=True)
                     raise optuna.exceptions.TrialPruned()
             else:
                 # final iteration
@@ -148,17 +153,9 @@ def objective(trial: Trial) -> float:
                 trial.set_user_attr("random_win_rate", random_win_rate)
                 trial.set_user_attr("mcts_win_rate", mcts_win_rate)
                 trial.set_user_attr("alpha_beta_win_rate", alpha_beta_win_rate)
-                
-                # Save trial results
-                trial_results = {
-                    "random_win_rate": random_win_rate,
-                    "alpha_beta_win_rate": alpha_beta_win_rate,
-                    "mcts_win_rate": mcts_win_rate,
-                    "score": score,
-                    "datetime": datetime.now().isoformat()
-                }
-                with open(trial_dir / "trial_results.json", "w") as f:
-                    json.dump(trial_results, f, indent=2)
+
+                # Save final results
+                save_trial_results(metric, trial_dir)
 
                 print(f"Trial {trial.number} score: {score:.3f}")
                 return score
