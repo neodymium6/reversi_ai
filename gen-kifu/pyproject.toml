@@ -11,6 +11,7 @@ dependencies = []
 
 [project.scripts]
 gen-kifu = "gen_kifu:main"
+get-wthor = "gen_kifu:get_wthor"
 
 [build-system]
 requires = ["hatchling"]
