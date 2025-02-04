@@ -24,6 +24,7 @@ STUDY_NAME = "config_tuning_v4"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/optuna.db"
 N_TRIALS = 1000
 RANDOM_SEED = 42
+PRUNE_PERCENTILE = 20.0
 N_STARTUP_TRIALS = 5
 N_WARMUP_STEPS = 3
 N_REPORTS = 11
@@ -187,7 +188,11 @@ def tune(resume: bool):
                 study_name=STUDY_NAME,
                 storage=STORAGE_URL,
                 sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
-                pruner=optuna.pruners.MedianPruner(n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_WARMUP_STEPS),
+                pruner=optuna.pruners.PercentilePruner(
+                    percentile=PRUNE_PERCENTILE,
+                    n_startup_trials=N_STARTUP_TRIALS,
+                    n_warmup_steps=N_WARMUP_STEPS,
+                ),
             )
             print(f"Loaded existing study with {len(study.trials)} trials")
         except Exception as e:
@@ -203,7 +208,11 @@ def tune(resume: bool):
                 storage=STORAGE_URL,
                 direction="maximize",
                 sampler=optuna.samplers.TPESampler(seed=RANDOM_SEED),
-                pruner=optuna.pruners.MedianPruner(n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_WARMUP_STEPS),
+                pruner=optuna.pruners.PercentilePruner(
+                    percentile=PRUNE_PERCENTILE,
+                    n_startup_trials=N_STARTUP_TRIALS,
+                    n_warmup_steps=N_WARMUP_STEPS,
+                ),
                 load_if_exists=False,
             )
         except optuna.exceptions.DuplicatedStudyError:
