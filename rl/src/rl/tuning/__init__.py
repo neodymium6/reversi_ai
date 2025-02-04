@@ -11,6 +11,7 @@ from rl.agents.net_driver.transformer import TransformerConfig
 from rl.memory import MemoryType, MemoryConfig
 from pathlib import Path
 from enum import Enum
+from rl.tuning import transformer_config
 
 class TuneTarget(Enum):
     ARCHITECTURE = 1
@@ -56,28 +57,21 @@ def calculate_score(random_win_rate: float, mcts_win_rate: float, alpha_beta_win
 def get_arch_params(trial: Trial) -> dict:
     # tune architecture and lr, grad_clip
     if TUNE_TARGET == TuneTarget.ARCHITECTURE:
-        return {
-            "patch_size": trial.suggest_int("patch_size", 2, 4),
-            "embed_dim": trial.suggest_int("embed_dim", 64, 256),
-            "num_heads": trial.suggest_int("num_heads", 2, 8),
-            "num_layers": trial.suggest_int("num_layers", 4, 12),
-            "mlp_ratio": trial.suggest_float("mlp_ratio", 1.0, 4.0),
-            "dropout": trial.suggest_float("dropout", 0.0, 0.3),
+        model_type = trial.suggest_categorical("arch", list(transformer_config.TRANSFORMER_CONFIGS.keys()))
+        params = transformer_config.TRANSFORMER_CONFIGS[model_type]
+        params.update({
             "lr": trial.suggest_float("lr", 1e-6, 1e-3, log=True),
             "gradient_clip": trial.suggest_float("gradient_clip", 0.1, 5.0),
-        }
+        })
+        return params
     else:
         # return default values
-        return {
-            "patch_size": 2,
-            "embed_dim": 128,
-            "num_heads": 4,
-            "num_layers": 8,
-            "mlp_ratio": 2.0,
-            "dropout": 0.0,
+        params = transformer_config.DEFAULT_TRANSFORMER_CONFIG
+        params.update({
             "lr": 2e-5,
             "gradient_clip": 1.0,
-        }
+        })
+        return params
     
 def get_env_params(trial: Trial) -> dict:
     # tune env params
