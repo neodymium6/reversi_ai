@@ -1,0 +1,17 @@
+[project]
+name = "gen-kifu"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "neodymium6", email = "104201402+neodymium6@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+gen-kifu = "gen_kifu:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
