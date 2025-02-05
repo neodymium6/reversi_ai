@@ -7,11 +7,16 @@ authors = [
     { name = "neodymium6", email = "104201402+neodymium6@users.noreply.github.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "h5py>=3.12.1",
+    "numpy>=2.2.2",
+    "rust-reversi>=1.4.4",
+]
 
 [project.scripts]
 gen-kifu = "gen_kifu:main"
 get-wthor = "gen_kifu:get_wthor"
+wtb2h5 = "gen_kifu:run_wtb2h5"
 
 [build-system]
 requires = ["hatchling"]
