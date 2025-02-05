@@ -17,6 +17,7 @@ dependencies = [
 gen-kifu = "gen_kifu:main"
 get-wthor = "gen_kifu:get_wthor"
 wtb2h5 = "gen_kifu:run_wtb2h5"
+mcts = "gen_kifu:mcts"
 
 [build-system]
 requires = ["hatchling"]

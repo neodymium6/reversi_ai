@@ -1,7 +1,9 @@
 import os
 import pathlib
+import sys
 import time
 from gen_kifu import wtb2h5
+from gen_kifu import mcts as mcts_gen
 
 WTHOR_PATH = "wthor"
 
@@ -29,3 +31,16 @@ def get_wthor() -> None:
 
 def run_wtb2h5() -> None:
     wtb2h5.main()
+
+def mcts() -> None:
+    if len(sys.argv) > 2:
+        print("Usage: uv run mcts [--resume (optional)]")
+        raise ValueError(f"Invalid arguments: {sys.argv[1:]}")
+    resume = False
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "--resume":
+            resume = True
+        else:
+            print("Usage: uv run mcts [--resume (optional)]")
+            raise ValueError(f"Invalid argument: {sys.argv[1]}")
+    mcts_gen.main(resume=resume)
