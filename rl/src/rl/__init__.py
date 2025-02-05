@@ -12,13 +12,14 @@ import sys
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
 EPISODES = 120000
+MEMORY_RATIO = 3.487
 BATCH_BOARD_SIZE = 240
 
 memory_config = MemoryConfig(
-    memory_size=EPISODES // 5,
+    memory_size=int(EPISODES * MEMORY_RATIO),
     memory_type=MemoryType.PROPORTIONAL,
-    alpha=0.5,
-    beta=0.5,
+    alpha=0.75456,
+    beta=0.7284,
 )
 
 net_config = TransformerConfig(
@@ -41,15 +42,15 @@ train_config = AgentConfig(
     net_config=net_config,
     batch_size=BATCH_SIZE,
     board_batch_size=BATCH_BOARD_SIZE,
-    n_board_init_random_moves=14,
+    n_board_init_random_moves=29,
     p_board_init_random_moves=0.8,
     device=DEVICE,
     eps_start=1.0,
-    eps_end=0.03,
-    eps_decay=10,
-    lr=1e-5,
+    eps_end=0.077348,
+    eps_decay=5,
+    lr=2e-5,
     gradient_clip=1.0,
-    gamma=0.99,
+    gamma=0.991,
     n_episodes=EPISODES,
     steps_per_optimize=1,
     optimize_per_target_update=1,
