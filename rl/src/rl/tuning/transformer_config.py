@@ -58,7 +58,7 @@ TRANSFORMER_CONFIGS = {
     },
     "local_focus": {
         "patch_size": 2,
-        "embed_dim": 512,
+        "embed_dim": 256,
         "num_heads": 32,
         "num_layers": 6,
         "mlp_ratio": 2.0,
