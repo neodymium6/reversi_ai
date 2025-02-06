@@ -68,8 +68,8 @@ def get_arch_params(trial: Trial) -> dict:
         # return default values
         params = transformer_config.DEFAULT_TRANSFORMER_CONFIG
         params.update({
-            "lr": 2e-5,
-            "gradient_clip": 1.0,
+            "lr": 2.21e-5,
+            "gradient_clip": 0.43,
         })
         return params
     

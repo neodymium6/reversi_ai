@@ -1,11 +1,3 @@
-DEFAULT_TRANSFORMER_CONFIG = {
-    "patch_size": 2,
-    "embed_dim": 128,
-    "num_heads": 4,
-    "num_layers": 8,
-    "mlp_ratio": 2.0,
-    "dropout": 0.0,
-}
 
 TRANSFORMER_CONFIGS = {
     "balanced": {
@@ -73,3 +65,5 @@ TRANSFORMER_CONFIGS = {
         "dropout": 0.0,
     },
 }
+
+DEFAULT_TRANSFORMER_CONFIG = TRANSFORMER_CONFIGS["mlp_heavy"]
