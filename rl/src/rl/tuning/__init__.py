@@ -26,15 +26,15 @@ STEPS_PER_OPTIMIZE = 1
 OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
-TUNE_TARGET = TuneTarget.ENVIRONMENT
+TUNE_TARGET = TuneTarget.ARCHITECTURE
 STUDY_NAME = f"transformer_{TUNE_TARGET.name.lower()}_study_v1"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/optuna.db"
-N_TRIALS = 1000
+N_TRIALS = 100
 RANDOM_SEED = 42
 PRUNE_PERCENTILE = 80.0
 N_STARTUP_TRIALS = 5
 N_WARMUP_STEPS = 3
-N_REPORTS = 11
+N_REPORTS = 6
 
 EVAL_N_GAMES = 1000
 # Weights for evaluation metrics
@@ -92,14 +92,14 @@ def get_env_params(trial: Trial) -> dict:
     else:
         # return default values
         return {
-            "memory_ratio": 2.0,
-            "alpha": 0.75,
-            "beta": 0.5,
-            "n_board_init_random_moves": 14,
-            "p_board_init_random_moves": 0.8,
-            "eps_end": 0.03,
-            "eps_decay": 20,
-            "gamma": 0.995,
+            "memory_ratio": 5.5,
+            "alpha": 0.99,
+            "beta": 0.376,
+            "n_board_init_random_moves": 28,
+            "p_board_init_random_moves": 0.545,
+            "eps_end": 0.0664,
+            "eps_decay": 8,
+            "gamma": 0.9925,
         }     
 
 def get_config(trial: Trial) -> AgentConfig:
