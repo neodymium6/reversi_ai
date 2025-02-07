@@ -1,4 +1,3 @@
-import random
 import numpy as np
 import h5py
 import torch
@@ -8,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from rust_reversi import Board, Turn
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
+from distillation.losses.mse_ranking import MSEWithRankingLoss
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 WTHOR_DATA_PATH = "data/wthor_boards.h5"
@@ -109,7 +109,7 @@ def train_model(data: np.ndarray) -> None:
     )
 
     # init criterion
-    criterion = torch.nn.MSELoss()
+    criterion = MSEWithRankingLoss()
 
     # train loop
     for epoch in range(N_EPOCHS):
