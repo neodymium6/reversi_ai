@@ -1,12 +1,13 @@
 import torch
 from rust_reversi import Board
+from distillation.models import StudentNet
 
 INPUT_SIZE = 128
 # 8x8 board + 1 for pass
 OUTPUT_SIZE = 65
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class DenseNet(torch.nn.Module):
+class DenseNet(StudentNet):
     def __init__(self, hidden_size: int):
         super(DenseNet, self).__init__()
         self.fc1 = torch.nn.Linear(INPUT_SIZE, hidden_size)

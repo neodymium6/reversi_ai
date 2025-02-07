@@ -5,8 +5,9 @@ import torch
 from distillation.models.transfomer import Transformer
 from distillation.models.dense import DenseNet
 from sklearn.model_selection import train_test_split
-from rust_reversi import AlphaBetaSearch, Board, MatrixEvaluator, Turn, MctsSearch
+from rust_reversi import Board, Turn
 import tqdm
+from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 WTHOR_DATA_PATH = "data/wthor_boards.h5"
@@ -67,143 +68,6 @@ def load_data() -> np.ndarray:
         print(f"Trimming data to {MAX_DATA}")
         data = np.random.choice(data, MAX_DATA, replace=False)
     return data
-
-def vs_random(n_games: int, net: DenseNet) -> float:
-    print("Vs Random")
-    net.eval()
-    def two_game():
-        win_count = 0
-        # net is black
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if board.get_turn() == Turn.BLACK:
-                action = net.get_action(board)
-            else:
-                action = board.get_random_move()
-            board.do_move(action)
-        if board.is_black_win():
-            win_count += 1
-        # net is white
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if board.get_turn() == Turn.WHITE:
-                action = net.get_action(board)
-            else:
-                action = board.get_random_move()
-            board.do_move(action)
-        if board.is_white_win():
-            win_count += 1
-        return win_count
-
-    win_count = 0
-    for _ in range(n_games // 2):
-        win_count += two_game()
-    win_rate = win_count / n_games
-    return win_rate
-
-def vs_mcts(n_games: int, net: DenseNet) -> float:
-    print("Vs MCTS")
-    net.eval()
-    search = MctsSearch(100, 1.0, 3)
-    def two_game():
-        win_count = 0
-        # net is black
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if board.get_turn() == Turn.BLACK:
-                action = net.get_action(board)
-            else:
-                action = search.get_move(board)
-            board.do_move(action)
-        if board.is_black_win():
-            win_count += 1
-        # net is white
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if board.get_turn() == Turn.WHITE:
-                action = net.get_action(board)
-            else:
-                action = search.get_move(board)
-            board.do_move(action)
-        if board.is_white_win():
-            win_count += 1
-        return win_count
-
-    win_count = 0
-    for _ in range(n_games // 2):
-        win_count += two_game()
-    win_rate = win_count / n_games
-    return win_rate
-
-def vs_alpha_beta(n_games: int, net: DenseNet, epsilon: float = 0.1) -> float:
-    print("Vs AlphaBeta")
-    net.eval()
-    def two_game():
-        evaluator = MatrixEvaluator([
-            [ 40,   1,  4,  0,  0,  4,   1, 40],
-            [  1, -12, -8, -6, -6, -8, -12,  1],
-            [  4,  -8, -1,  0,  0, -1,  -8,  4],
-            [  0,  -6,  0,  0,  0,  0,  -6,  0],
-            [  0,  -6,  0,  0,  0,  0,  -6,  0],
-            [  4,  -8, -1,  0,  0, -1,  -8,  4],
-            [  1, -12, -8, -6, -6, -8, -12,  1],
-            [ 40,   1,  4,  0,  0,  4,   1, 40],
-        ])
-        search = AlphaBetaSearch(evaluator, 4, 1 << 10)
-        win_count = 0
-        # agent is black
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if random.random() < epsilon:
-                action = board.get_random_move()
-                board.do_move(action)
-                continue
-            if board.get_turn() == Turn.BLACK:
-                action = net.get_action(board)
-            else:
-                action = search.get_move(board)
-            board.do_move(action)
-        if board.is_black_win():
-            win_count += 1
-        # agent is white
-        board = Board()
-        while not board.is_game_over():
-            if board.is_pass():
-                board.do_pass()
-                continue
-            if random.random() < epsilon:
-                action = board.get_random_move()
-                board.do_move(action)
-                continue
-            if board.get_turn() == Turn.WHITE:
-                action = net.get_action(board)
-            else:
-                action = search.get_move(board)
-            board.do_move(action)
-        if board.is_white_win():
-            win_count += 1
-        return win_count
-
-    win_count = 0
-    for _ in range(n_games // 2):
-        win_count += two_game()
-    win_rate = win_count / n_games
-    return win_rate
 
 def train_model(data: np.ndarray) -> None:
     print("Training model...")
