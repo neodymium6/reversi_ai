@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 distillation = "distillation:main"
+export = "distillation:export_student_model"
 
 [build-system]
 requires = ["hatchling"]

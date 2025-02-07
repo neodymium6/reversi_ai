@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import h5py
 import torch
@@ -155,3 +156,17 @@ def train_model(data: np.ndarray) -> None:
 def main() -> None:
     data = load_data()
     train_model(data)
+
+def export_student_model() -> None:
+    student_net = DenseNet(hidden_size=128)
+    student_net.load_state_dict(torch.load(STUDENT_MODEL_PATH))
+
+    params = {}
+
+    params['ih_weights'] = student_net.fc1.weight.detach().numpy().tolist()
+    params['h1_biases'] = student_net.fc1.bias.detach().numpy().tolist()
+    params['ho_weights'] = student_net.fc2.weight.detach().numpy().tolist()
+    params['o_biases'] = student_net.fc2.bias.detach().numpy().tolist()
+
+    with open("dense.json", "w") as f:
+        json.dump(params, f)
