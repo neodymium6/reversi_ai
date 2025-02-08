@@ -11,6 +11,7 @@ from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 from distillation.losses.mse_ranking import MSEWithRankingLoss
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
+MCTS_DATA2_PATH = "data/mcts_boards2.h5"
 WTHOR_DATA_PATH = "data/wthor_boards.h5"
 TEACHER_MODEL_PATH = "models/teacher_model.pth"
 STUDENT_MODEL_PATH = "models/student_model.pth"
@@ -61,10 +62,14 @@ def load_data() -> np.ndarray:
     with h5py.File(MCTS_DATA_PATH, "r") as f:
         mcts_data = f["data"][:]
         print(f"Loaded MCTS data with shape: {mcts_data.shape}")
+    with h5py.File(MCTS_DATA2_PATH, "r") as f:
+        mcts_data2 = f["data"][:]
+        print(f"Loaded MCTS2 data with shape: {mcts_data2.shape}")
     with h5py.File(WTHOR_DATA_PATH, "r") as f:
         wthor_data = f["data"][:]
         print(f"Loaded WTHOR data with shape: {wthor_data.shape}")
     data: np.ndarray = np.concatenate([mcts_data, wthor_data], axis=0)
+    data = np.concatenate([data, mcts_data2], axis=0)
     if data.shape[0] > MAX_DATA:
         print(f"Trimming data to {MAX_DATA}")
         data = np.random.choice(data, MAX_DATA, replace=False)
