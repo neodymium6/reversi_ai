@@ -18,6 +18,7 @@ STUDENT_MODEL_PATH = "models/student_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 1024
 LR = 1e-4
+WEIGHT_DECAY =1e-4
 N_EPOCHS = 10
 MAX_DATA = int(2e6)
 
@@ -106,7 +107,7 @@ def train_model(data: np.ndarray) -> None:
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     # init optimizer
-    optimizer = torch.optim.AdamW(student_net.parameters(), lr=LR)
+    optimizer = torch.optim.AdamW(student_net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=LR,
