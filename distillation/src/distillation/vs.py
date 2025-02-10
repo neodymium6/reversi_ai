@@ -1,9 +1,9 @@
 import random
 from rust_reversi import AlphaBetaSearch, Board, MatrixEvaluator, MctsSearch, Turn
-from distillation.models import StudentNet
+from distillation.models import ReversiNet
 
 
-def vs_random(n_games: int, net: StudentNet) -> float:
+def vs_random(n_games: int, net: ReversiNet) -> float:
     print("Vs Random")
     net.eval()
     def two_game():
@@ -42,7 +42,7 @@ def vs_random(n_games: int, net: StudentNet) -> float:
     win_rate = win_count / n_games
     return win_rate
 
-def vs_mcts(n_games: int, net: StudentNet) -> float:
+def vs_mcts(n_games: int, net: ReversiNet) -> float:
     print("Vs MCTS")
     net.eval()
     search = MctsSearch(100, 1.0, 3)
@@ -82,7 +82,7 @@ def vs_mcts(n_games: int, net: StudentNet) -> float:
     win_rate = win_count / n_games
     return win_rate
 
-def vs_alpha_beta(n_games: int, net: StudentNet, epsilon: float = 0.1) -> float:
+def vs_alpha_beta(n_games: int, net: ReversiNet, epsilon: float = 0.1) -> float:
     print("Vs AlphaBeta")
     net.eval()
     def two_game():

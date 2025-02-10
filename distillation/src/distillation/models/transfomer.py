@@ -1,6 +1,11 @@
+import numpy as np
+from rust_reversi import Board, Turn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from distillation.models import ReversiNet
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class PatchEmbedding(nn.Module):
     def __init__(self, patch_size=2, in_channels=2, embed_dim=128):
@@ -60,7 +65,7 @@ class TransformerBlock(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
 
-class Transformer(nn.Module):
+class Transformer(ReversiNet):
     def __init__(self, 
                  patch_size=2,
                  embed_dim=128,
@@ -122,3 +127,34 @@ class Transformer(nn.Module):
         q_values = value + (advantage - advantage.mean(dim=1, keepdim=True).expand(-1, 65))
         
         return q_values
+    
+    def get_action(self, board: Board) -> int:
+        board_matrix = board.get_board_matrix()
+        board_tensor = torch.tensor(board_matrix, dtype=torch.float32)
+        board_tensor = board_tensor[0:2, :, :]
+        board_tensor = board_tensor.to(DEVICE)
+        with torch.no_grad():
+            output = self.forward(board_tensor)
+        legal_actions = torch.tensor(
+            board.get_legal_moves_tf() + [board.is_pass()],
+            dtype=torch.bool,
+            device=DEVICE,
+        )
+        output.masked_fill_(~legal_actions, -1e9)
+        return torch.argmax(output).item()
+    
+    @staticmethod
+    def x2input(x: np.void) -> torch.Tensor:
+        player_board = x["player_board"]
+        opponent_board = x["opponent_board"]
+        turn_str = x["turn"]
+        if turn_str == b'Black':
+            turn = Turn.BLACK
+        else:
+            turn = Turn.WHITE
+        board = Board()
+        board.set_board(player_board, opponent_board, turn)
+        board_matrix = board.get_board_matrix()
+        board_tensor = torch.tensor(board_matrix, dtype=torch.float32)
+        board_tensor = board_tensor[0:2, :, :]
+        return board_tensor

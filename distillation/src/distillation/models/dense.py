@@ -1,13 +1,14 @@
+import numpy as np
 import torch
 from rust_reversi import Board
-from distillation.models import StudentNet
+from distillation.models import ReversiNet
 
 INPUT_SIZE = 128
 # 8x8 board + 1 for pass
 OUTPUT_SIZE = 65
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class DenseNet(StudentNet):
+class DenseNet(ReversiNet):
     def __init__(self, hidden_size: int):
         super(DenseNet, self).__init__()
         self.fc1 = torch.nn.Linear(INPUT_SIZE, hidden_size)
@@ -38,3 +39,16 @@ class DenseNet(StudentNet):
         )
         output.masked_fill_(~legal_actions, -1e9)
         return torch.argmax(output).item()
+
+    @staticmethod
+    def x2input(x: np.void) -> torch.Tensor:
+        res = torch.zeros(128, dtype=torch.float32)
+        player_board = x["player_board"]
+        opponent_board = x["opponent_board"]
+        for i in range(64):
+            bit = 1 << (64 - i - 1)
+            if player_board & bit:
+                res[i] = 1.0
+            if opponent_board & bit:
+                res[i + 64] = 1.0
+        return res

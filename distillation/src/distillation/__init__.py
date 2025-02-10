@@ -4,8 +4,8 @@ import h5py
 import torch
 from distillation.models.transfomer import Transformer
 from distillation.models.dense import DenseNet
+from distillation.models import ReversiNet
 from sklearn.model_selection import train_test_split
-from rust_reversi import Board, Turn
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 from distillation.losses.mse_ranking import MSEWithRankingLoss
@@ -18,9 +18,18 @@ STUDENT_MODEL_PATH = "models/student_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 1024
 LR = 1e-4
-WEIGHT_DECAY =1e-4
+WEIGHT_DECAY =1e-7
 N_EPOCHS = 10
-MAX_DATA = int(2e6)
+MAX_DATA = int(2e5)
+teacher_net: ReversiNet = Transformer(
+    patch_size=2,
+    embed_dim=160,
+    num_heads=5,
+    num_layers=8,
+    mlp_ratio=4.0,
+    dropout=0.0,
+)
+student_net: ReversiNet = DenseNet(hidden_size=128)
 
 class DistillationDataset(torch.utils.data.Dataset):
     def __init__(self, X: np.ndarray):
@@ -30,31 +39,10 @@ class DistillationDataset(torch.utils.data.Dataset):
         return len(self.X)
     
     def _x2teacher_input(self, x: np.void) -> torch.Tensor:
-        player_board = x["player_board"]
-        opponent_board = x["opponent_board"]
-        turn_str = x["turn"]
-        if turn_str == b'Black':
-            turn = Turn.BLACK
-        else:
-            turn = Turn.WHITE
-        board = Board()
-        board.set_board(player_board, opponent_board, turn)
-        board_matrix = board.get_board_matrix()
-        board_tensor = torch.tensor(board_matrix, dtype=torch.float32)
-        board_tensor = board_tensor[0:2, :, :]
-        return board_tensor
+        return teacher_net.x2input(x)
     
     def _x2student_input(self, x: np.void) -> torch.Tensor:
-        res = torch.zeros(128, dtype=torch.float32)
-        player_board = x["player_board"]
-        opponent_board = x["opponent_board"]
-        for i in range(64):
-            bit = 1 << (64 - i - 1)
-            if player_board & bit:
-                res[i] = 1.0
-            if opponent_board & bit:
-                res[i + 64] = 1.0
-        return res
+        return student_net.x2input(x)
 
     def __getitem__(self, idx):
         return (self._x2teacher_input(self.X[idx]), self._x2student_input(self.X[idx]))
@@ -79,14 +67,6 @@ def load_data() -> np.ndarray:
 def train_model(data: np.ndarray) -> None:
     print("Training model...")
     # load teacher model
-    teacher_net = Transformer(
-        patch_size=2,
-        embed_dim=160,
-        num_heads=5,
-        num_layers=8,
-        mlp_ratio=4.0,
-        dropout=0.0,
-    )
     state_dict = torch.load(TEACHER_MODEL_PATH, weights_only=True)
     new_state_dict = {}
     for key in state_dict:
@@ -95,8 +75,6 @@ def train_model(data: np.ndarray) -> None:
     teacher_net.load_state_dict(new_state_dict)
     teacher_net.eval()
     teacher_net.to(DEVICE)
-    # initialize student model
-    student_net = DenseNet(hidden_size=128)
     student_net.to(DEVICE)
 
     # init data loaders
@@ -112,11 +90,11 @@ def train_model(data: np.ndarray) -> None:
         optimizer,
         max_lr=LR,
         total_steps=N_EPOCHS * len(train_loader),
-        final_div_factor=100,
+        final_div_factor=1e5,
     )
 
     # init criterion
-    criterion = MSEWithRankingLoss()
+    criterion = MSEWithRankingLoss(rank_weight=2.0)
 
     # train loop
     for epoch in range(N_EPOCHS):
