@@ -4,12 +4,12 @@ import numpy as np
 import h5py
 from pathlib import Path
 
-N_PLAYOUTS = 100
+N_PLAYOUTS = 10000
 C = 1.0
-EXPAND_THRESHOLD = 3
+EXPAND_THRESHOLD = 10
 
 MCTS_PATH = "mcts"
-DATA_PATH = "kifu.h5"
+DATA_PATH = "kifu_10000.h5"
 
 def game() -> List[Tuple[int, int, str]]:
     board_history = []

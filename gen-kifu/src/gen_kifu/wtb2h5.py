@@ -5,7 +5,7 @@ import numpy as np
 import h5py
 
 WTHOR_PATH = "wthor"
-H5_PATH = "unique_boards.h5"
+H5_PATH = "wthor_boards.h5"
 
 N_GAMES = {
     1990: 1651,
@@ -116,4 +116,4 @@ def main() -> None:
     print("Done reading WTB files.")
     print(f"Number of unique board states: {len(all_board_history)}")
     with h5py.File(pathlib.Path(WTHOR_PATH) / H5_PATH, "w") as f:
-        f.create_dataset("unique_boards", data=all_board_history)
+        f.create_dataset("data", data=all_board_history)
