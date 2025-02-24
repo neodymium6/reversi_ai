@@ -1,14 +1,14 @@
 import json
 import numpy as np
 import h5py
+from rust_reversi import Board, Turn
 import torch
 from distillation.models.transfomer import Transformer
-from distillation.models.dense import DenseNet
+from distillation.models.dense_v import DenseNetV
 from distillation.models import ReversiNet
 from sklearn.model_selection import train_test_split
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
-from distillation.losses.mse_ranking import MSEWithRankingLoss
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 MCTS_DATA2_PATH = "data/mcts_boards2.h5"
@@ -16,11 +16,11 @@ WTHOR_DATA_PATH = "data/wthor_boards.h5"
 TEACHER_MODEL_PATH = "models/teacher_model.pth"
 STUDENT_MODEL_PATH = "models/student_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 1024
+BATCH_SIZE = 2048
 LR = 1e-4
 WEIGHT_DECAY =1e-7
 N_EPOCHS = 10
-MAX_DATA = int(2e5)
+MAX_DATA = int(2e6)
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -29,7 +29,7 @@ teacher_net: ReversiNet = Transformer(
     mlp_ratio=4.0,
     dropout=0.0,
 )
-student_net: ReversiNet = DenseNet(hidden_size=128)
+student_net: ReversiNet = DenseNetV(hidden_size=128)
 
 class DistillationDataset(torch.utils.data.Dataset):
     def __init__(self, X: np.ndarray):
@@ -44,8 +44,25 @@ class DistillationDataset(torch.utils.data.Dataset):
     def _x2student_input(self, x: np.void) -> torch.Tensor:
         return student_net.x2input(x)
 
+    def _legal_actions(self, x: np.void) -> torch.Tensor:
+        player_board = x["player_board"]
+        opponent_board = x["opponent_board"]
+        turn_str = x["turn"]
+        if turn_str == b'Black':
+            turn = Turn.BLACK
+        else:
+            turn = Turn.WHITE
+        board = Board()
+        board.set_board(player_board, opponent_board, turn)
+        legal_actions = torch.tensor(
+            board.get_legal_moves_tf() + [board.is_pass()],
+            dtype=torch.bool,
+            device=DEVICE,
+        )
+        return legal_actions
+
     def __getitem__(self, idx):
-        return (self._x2teacher_input(self.X[idx]), self._x2student_input(self.X[idx]))
+        return (self._x2teacher_input(self.X[idx]), self._x2student_input(self.X[idx]), self._legal_actions(self.X[idx]))
 
 def load_data() -> np.ndarray:
     with h5py.File(MCTS_DATA_PATH, "r") as f:
@@ -94,19 +111,22 @@ def train_model(data: np.ndarray) -> None:
     )
 
     # init criterion
-    criterion = MSEWithRankingLoss(rank_weight=2.0)
+    criterion = torch.nn.MSELoss()
 
     # train loop
     for epoch in range(N_EPOCHS):
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader))
-        for i, (teacher_input, student_input) in enumerate(train_loader):
+        for i, (teacher_input, student_input, legal_actions) in enumerate(train_loader):
             teacher_input: torch.Tensor = teacher_input.to(DEVICE)
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            teacher_output = teacher_net(teacher_input)
-            student_output = student_net(student_input)
-            loss: torch.Tensor = criterion(student_output, teacher_output)
+            teacher_output: torch.Tensor = teacher_net(teacher_input)
+            teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
+            teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+
+            student_v = student_net(student_input)
+            loss: torch.Tensor = criterion(student_v, teacher_v)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(student_net.parameters(), 1.0)
             optimizer.step()
@@ -116,12 +136,15 @@ def train_model(data: np.ndarray) -> None:
         student_net.eval()
         with torch.no_grad():
             test_loss = 0.0
-            for i, (teacher_input, student_input) in enumerate(test_loader):
+            for teacher_input, student_input, legal_actions in test_loader:
                 teacher_input = teacher_input.to(DEVICE)
                 student_input = student_input.to(DEVICE)
                 teacher_output = teacher_net(teacher_input)
-                student_output = student_net(student_input)
-                loss = criterion(student_output, teacher_output)
+                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
+                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+
+                student_v = student_net(student_input)
+                loss = criterion(student_v, teacher_v)
                 test_loss += loss.item()
             test_loss /= len(test_loader)
             print(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}")
@@ -142,8 +165,10 @@ def main() -> None:
     train_model(data)
 
 def export_student_model() -> None:
-    student_net = DenseNet(hidden_size=128)
     student_net.load_state_dict(torch.load(STUDENT_MODEL_PATH))
+    base64_str = student_net.save_weights_base64()
+    with open("dense.txt", "w") as f:
+        f.write(base64_str)
 
     params = {}
 
