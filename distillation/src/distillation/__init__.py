@@ -143,6 +143,7 @@ def train_model(data: np.ndarray) -> None:
             pb.update(1)
         pb.close()
         student_net.eval()
+        torch.save(student_net.state_dict(), STUDENT_MODEL_PATH)
         with torch.no_grad():
             test_loss = 0.0
             for teacher_input, student_input, legal_actions in test_loader:
@@ -157,16 +158,17 @@ def train_model(data: np.ndarray) -> None:
                 test_loss += loss.item()
             test_loss /= len(test_loader)
             print(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}")
-            random_win_rate = vs_random(100, student_net)
-            mcts_win_rate = vs_mcts(100, student_net)
-            alpha_beta_win_rate = vs_alpha_beta(100, student_net)
-            print(f"Random Win Rate: {random_win_rate}, MCTS Win Rate: {mcts_win_rate}, AlphaBeta Win Rate: {alpha_beta_win_rate}")
-        torch.save(student_net.state_dict(), STUDENT_MODEL_PATH)
+            n_games = 30
+            random_win_rate = vs_random(n_games, student_net)
+            mcts_win_rate = vs_mcts(n_games, student_net)
+            alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
+            print(f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
 
-    random_win_rate = vs_random(1000, student_net)
-    mcts_win_rate = vs_mcts(1000, student_net)
-    alpha_beta_win_rate = vs_alpha_beta(1000, student_net)
-    print(f"Final Random Win Rate: {random_win_rate}, MCTS Win Rate: {mcts_win_rate}, AlphaBeta Win Rate: {alpha_beta_win_rate}")
+    n_games = 1000
+    random_win_rate = vs_random(n_games, student_net)
+    mcts_win_rate = vs_mcts(n_games, student_net)
+    alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
+    print(f"Final Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
 
 
 def main() -> None:
