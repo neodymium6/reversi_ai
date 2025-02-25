@@ -21,6 +21,8 @@ LR = 1e-4
 WEIGHT_DECAY =1e-7
 N_EPOCHS = 10
 MAX_DATA = int(2e6)
+TEMPRATURE_START = 2.0
+TEMPRATURE_END = 1.0
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -81,6 +83,9 @@ def load_data() -> np.ndarray:
         data = np.random.choice(data, MAX_DATA, replace=False)
     return data
 
+def temp_teacher(teacher_v: torch.Tensor, temperature: float) -> torch.Tensor:
+    return 0.5 + (teacher_v - 0.5) / temperature
+
 def train_model(data: np.ndarray) -> None:
     print("Training model...")
     # load teacher model
@@ -115,6 +120,8 @@ def train_model(data: np.ndarray) -> None:
 
     # train loop
     for epoch in range(N_EPOCHS):
+        temprature = TEMPRATURE_START + (TEMPRATURE_START - TEMPRATURE_END) * epoch / (1 - N_EPOCHS)
+        print(f"Temperature: {temprature}")
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader))
         for i, (teacher_input, student_input, legal_actions) in enumerate(train_loader):
@@ -124,6 +131,8 @@ def train_model(data: np.ndarray) -> None:
             teacher_output: torch.Tensor = teacher_net(teacher_input)
             teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
             teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+
+            teacher_v = temp_teacher(teacher_v, temprature)
 
             student_v = student_net(student_input)
             loss: torch.Tensor = criterion(student_v, teacher_v)
