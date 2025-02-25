@@ -1,4 +1,3 @@
-import json
 import numpy as np
 import h5py
 from rust_reversi import Board, Turn
@@ -177,16 +176,7 @@ def main() -> None:
 
 def export_student_model() -> None:
     student_net.load_state_dict(torch.load(STUDENT_MODEL_PATH))
+    student_net.eval()
     base64_str = student_net.save_weights_base64()
     with open("dense.txt", "w") as f:
         f.write(base64_str)
-
-    params = {}
-
-    params['ih_weights'] = student_net.fc1.weight.detach().numpy().tolist()
-    params['h1_biases'] = student_net.fc1.bias.detach().numpy().tolist()
-    params['ho_weights'] = student_net.fc2.weight.detach().numpy().tolist()
-    params['o_biases'] = student_net.fc2.bias.detach().numpy().tolist()
-
-    with open("dense.json", "w") as f:
-        json.dump(params, f)
