@@ -21,8 +21,8 @@ LR = 1e-4
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
 MAX_DATA = int(2e6)
-TEMPRATURE_START = 1.5
-TEMPRATURE_END = 1.0
+TEMPERATURE_START = 1.5
+TEMPERATURE_END = 1.0
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -137,11 +137,11 @@ def train_model(data: np.ndarray) -> None:
 
     train_losses = []
     test_losses = []
-    test_tempatured_losses = []
+    test_temperatured_losses = []
     # train loop
     for epoch in range(N_EPOCHS):
-        temprature = TEMPRATURE_START + (TEMPRATURE_START - TEMPRATURE_END) * epoch / (1 - N_EPOCHS)
-        print(f"Temperature: {temprature:.4f}")
+        temperature = TEMPERATURE_START + (TEMPERATURE_START - TEMPERATURE_END) * epoch / (1 - N_EPOCHS)
+        print(f"Temperature: {temperature:.4f}")
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
             max_lr=LR,
@@ -152,7 +152,7 @@ def train_model(data: np.ndarray) -> None:
         for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            teacher_v = temp_teacher(teacher_v, temprature)
+            teacher_v = temp_teacher(teacher_v, temperature)
 
             student_v = student_net(student_input)
             loss: torch.Tensor = criterion(student_v, teacher_v)
@@ -175,7 +175,7 @@ def train_model(data: np.ndarray) -> None:
                 loss = criterion(student_v, teacher_v)
                 test_loss += loss.item()
 
-                teacher_v = temp_teacher(teacher_v, temprature)
+                teacher_v = temp_teacher(teacher_v, temperature)
                 loss = criterion(student_v, teacher_v)
                 test_tempatured_loss += loss.item()
 
@@ -189,12 +189,12 @@ def train_model(data: np.ndarray) -> None:
             print(f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
 
         test_losses.append((epoch+1, test_loss))
-        test_tempatured_losses.append((epoch+1, test_tempatured_loss))
+        test_temperatured_losses.append((epoch+1, test_tempatured_loss))
         # plot losses
         fig, ax = plt.subplots()
         ax.plot([x[0] for x in train_losses], [x[1] for x in train_losses], label="Train Loss")
         ax.plot([x[0] for x in test_losses], [x[1] for x in test_losses], label="Test Loss")
-        ax.plot([x[0] for x in test_tempatured_losses], [x[1] for x in test_tempatured_losses], label="Test Tempatured Loss")
+        ax.plot([x[0] for x in test_temperatured_losses], [x[1] for x in test_temperatured_losses], label="Test Tempatured Loss")
         ax.set_yscale("log")
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
