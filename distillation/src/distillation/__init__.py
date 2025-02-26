@@ -24,6 +24,7 @@ MAX_DATA = int(1e6)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
 COOLING_PHASE_RATIO = 0.8
+COMPOSITE_LOSS_ALPHA = 0.7
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -159,6 +160,12 @@ def train_model(data: np.ndarray) -> None:
     # init criterion
     criterion = torch.nn.MSELoss()
 
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=LR,
+        total_steps=len(train_loader) * N_EPOCHS,
+    )
+
     temperature_scheduler = TemperatureScheduler(
         TEMPERATURE_START,
         TEMPERATURE_END,
@@ -172,20 +179,16 @@ def train_model(data: np.ndarray) -> None:
     # train loop
     for epoch in range(N_EPOCHS):
         print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            max_lr=LR,
-            total_steps=len(train_loader),
-        )
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader))
         for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
-
             student_v = student_net(student_input)
-            loss: torch.Tensor = criterion(student_v, teacher_v)
+            hard_loss: torch.Tensor = criterion(student_v, teacher_v)
+            teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
+            soft_loss: torch.Tensor = criterion(student_v, teacher_v)
+            loss = COMPOSITE_LOSS_ALPHA * soft_loss + (1.0 - COMPOSITE_LOSS_ALPHA) * hard_loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(student_net.parameters(), 1.0)
             optimizer.step()
