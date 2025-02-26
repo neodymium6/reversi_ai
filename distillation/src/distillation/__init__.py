@@ -36,6 +36,29 @@ student_net: ReversiNet = DenseNetV(hidden_size=128)
 class DistillationDataset(torch.utils.data.Dataset):
     def __init__(self, X: np.ndarray):
         self.X = X
+        self.teacher_v = torch.zeros(len(X), 1, dtype=torch.float32)
+        idx = 0
+        pb = tqdm.tqdm(total=len(X) // BATCH_SIZE)
+        pb.set_description("Initializing Distillation Dataset")
+        while idx + BATCH_SIZE < len(X):
+            teacher_input = torch.stack([self._x2teacher_input(x) for x in X[idx:idx+BATCH_SIZE]], dim=0).to(DEVICE)
+            legal_actions = torch.stack([self._legal_actions(x) for x in X[idx:idx+BATCH_SIZE]], dim=0)
+            with torch.no_grad():
+                teacher_output = teacher_net(teacher_input)
+                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
+                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+                self.teacher_v[idx:idx+BATCH_SIZE] = teacher_v
+            idx += BATCH_SIZE
+            pb.update(1)
+        pb.close()
+        teacher_input = torch.stack([self._x2teacher_input(x) for x in X[idx:]], dim=0).to(DEVICE)
+        legal_actions = torch.stack([self._legal_actions(x) for x in X[idx:]], dim=0)
+        with torch.no_grad():
+            teacher_output = teacher_net(teacher_input)
+            teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
+            teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+            self.teacher_v[idx:] = teacher_v
+        self.teacher_v = self.teacher_v.to(DEVICE)
 
     def __len__(self):
         return len(self.X)
@@ -64,7 +87,7 @@ class DistillationDataset(torch.utils.data.Dataset):
         return legal_actions
 
     def __getitem__(self, idx):
-        return (self._x2teacher_input(self.X[idx]), self._x2student_input(self.X[idx]), self._legal_actions(self.X[idx]))
+        return (self._x2student_input(self.X[idx]), self.teacher_v[idx])
 
 def load_data() -> np.ndarray:
     with h5py.File(MCTS_DATA_PATH, "r") as f:
@@ -126,15 +149,10 @@ def train_model(data: np.ndarray) -> None:
         )
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader))
-        for i, (teacher_input, student_input, legal_actions) in enumerate(train_loader):
-            teacher_input: torch.Tensor = teacher_input.to(DEVICE)
+        for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            with torch.no_grad():
-                teacher_output: torch.Tensor = teacher_net(teacher_input)
-                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
-                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
-                teacher_v = temp_teacher(teacher_v, temprature)
+            teacher_v = temp_teacher(teacher_v, temprature)
 
             student_v = student_net(student_input)
             loss: torch.Tensor = criterion(student_v, teacher_v)
@@ -151,13 +169,8 @@ def train_model(data: np.ndarray) -> None:
         with torch.no_grad():
             test_loss = 0.0
             test_tempatured_loss = 0.0
-            for teacher_input, student_input, legal_actions in test_loader:
-                teacher_input = teacher_input.to(DEVICE)
+            for student_input, teacher_v in test_loader:
                 student_input = student_input.to(DEVICE)
-                teacher_output = teacher_net(teacher_input)
-                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
-                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
-
                 student_v = student_net(student_input)
                 loss = criterion(student_v, teacher_v)
                 test_loss += loss.item()
@@ -185,7 +198,7 @@ def train_model(data: np.ndarray) -> None:
         ax.set_yscale("log")
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
-        ax.grid(True, linestyle="--", alpha=0.7, axis='both')
+        ax.grid()
         ax.legend()
         plt.tight_layout()
         plt.savefig("loss.png", dpi=300)
