@@ -21,7 +21,7 @@ LR = 1e-4
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
 MAX_DATA = int(2e6)
-TEMPRATURE_START = 2.0
+TEMPRATURE_START = 1.5
 TEMPRATURE_END = 1.0
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
@@ -108,12 +108,6 @@ def train_model(data: np.ndarray) -> None:
 
     # init optimizer
     optimizer = torch.optim.AdamW(student_net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=LR,
-        total_steps=N_EPOCHS * len(train_loader),
-        final_div_factor=1e5,
-    )
 
     # init criterion
     criterion = torch.nn.MSELoss()
@@ -125,17 +119,22 @@ def train_model(data: np.ndarray) -> None:
     for epoch in range(N_EPOCHS):
         temprature = TEMPRATURE_START + (TEMPRATURE_START - TEMPRATURE_END) * epoch / (1 - N_EPOCHS)
         print(f"Temperature: {temprature:.4f}")
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=LR,
+            total_steps=len(train_loader),
+        )
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader))
         for i, (teacher_input, student_input, legal_actions) in enumerate(train_loader):
             teacher_input: torch.Tensor = teacher_input.to(DEVICE)
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            teacher_output: torch.Tensor = teacher_net(teacher_input)
-            teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
-            teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
-
-            teacher_v = temp_teacher(teacher_v, temprature)
+            with torch.no_grad():
+                teacher_output: torch.Tensor = teacher_net(teacher_input)
+                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
+                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
+                teacher_v = temp_teacher(teacher_v, temprature)
 
             student_v = student_net(student_input)
             loss: torch.Tensor = criterion(student_v, teacher_v)
@@ -186,14 +185,13 @@ def train_model(data: np.ndarray) -> None:
         ax.set_yscale("log")
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
-        ax.grid(True, linestyle="--", alpha=0.7)
+        ax.grid(True, linestyle="--", alpha=0.7, axis='both')
         ax.legend()
         plt.tight_layout()
         plt.savefig("loss.png", dpi=300)
         plt.close()
 
-
-    n_games = 1000
+    n_games = 100
     random_win_rate = vs_random(n_games, student_net)
     mcts_win_rate = vs_mcts(n_games, student_net)
     alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
