@@ -16,7 +16,7 @@ WTHOR_DATA_PATH = "data/wthor_boards.h5"
 TEACHER_MODEL_PATH = "models/teacher_model.pth"
 STUDENT_MODEL_PATH = "models/student_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 4096
+BATCH_SIZE = 512
 LR = 1e-4
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
@@ -182,7 +182,7 @@ def train_model(data: np.ndarray) -> None:
             test_loss /= len(test_loader)
             test_tempatured_loss /= len(test_loader)
             print(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
-            n_games = 30
+            n_games = 10
             random_win_rate = vs_random(n_games, student_net)
             mcts_win_rate = vs_mcts(n_games, student_net)
             alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
@@ -213,7 +213,12 @@ def train_model(data: np.ndarray) -> None:
 
 def main() -> None:
     data = load_data()
-    train_model(data)
+    try:
+        train_model(data)
+    except KeyboardInterrupt:
+        print("Training interrupted")
+        return
+
 
 def export_student_model() -> None:
     student_net.load_state_dict(torch.load(STUDENT_MODEL_PATH))
