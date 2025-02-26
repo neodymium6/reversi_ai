@@ -20,9 +20,10 @@ BATCH_SIZE = 512
 LR = 1e-4
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
-MAX_DATA = int(2e6)
+MAX_DATA = int(1e6)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
+COOLING_PHASE_RATIO = 0.8
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -89,6 +90,29 @@ class DistillationDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return (self._x2student_input(self.X[idx]), self.teacher_v[idx])
 
+class TemperatureScheduler:
+    def __init__(self, start: float, end: float, total_steps: int, cooling_phase_ratio: float = 1.0):
+        self.start = start
+        self.end = end
+        self.total_steps = total_steps
+        self.cooling_phase_ratio = cooling_phase_ratio
+        self.current_temperature = start
+        self.current_step = 0
+        self.warinig_printed = False
+
+    def get_temperature(self):
+        return self.current_temperature
+
+    def step(self):
+        self.current_step += 1
+        if self.current_step > self.total_steps and not self.warinig_printed:
+            self.warinig_printed = True
+            print("Warning: TemperatureScheduler step called after total_steps")
+            return
+        if self.current_step > self.total_steps * self.cooling_phase_ratio:
+            return
+        self.current_temperature = self.start + (self.end - self.start) * self.current_step / (self.total_steps * self.cooling_phase_ratio)
+
 def load_data() -> np.ndarray:
     with h5py.File(MCTS_DATA_PATH, "r") as f:
         mcts_data = f["data"][:]
@@ -135,13 +159,19 @@ def train_model(data: np.ndarray) -> None:
     # init criterion
     criterion = torch.nn.MSELoss()
 
+    temperature_scheduler = TemperatureScheduler(
+        TEMPERATURE_START,
+        TEMPERATURE_END,
+        N_EPOCHS * len(train_loader),
+        COOLING_PHASE_RATIO,
+    )
+
     train_losses = []
     test_losses = []
     test_temperatured_losses = []
     # train loop
     for epoch in range(N_EPOCHS):
-        temperature = TEMPERATURE_START + (TEMPERATURE_START - TEMPERATURE_END) * epoch / (1 - N_EPOCHS)
-        print(f"Temperature: {temperature:.4f}")
+        print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
             max_lr=LR,
@@ -152,7 +182,7 @@ def train_model(data: np.ndarray) -> None:
         for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
-            teacher_v = temp_teacher(teacher_v, temperature)
+            teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
 
             student_v = student_net(student_input)
             loss: torch.Tensor = criterion(student_v, teacher_v)
@@ -160,6 +190,7 @@ def train_model(data: np.ndarray) -> None:
             torch.nn.utils.clip_grad_norm_(student_net.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
+            temperature_scheduler.step()
             pb.set_description(f"Epoch: {epoch}, Loss: {loss.item():.4f}")
             train_losses.append((epoch + i / len(train_loader), loss.item()))
             pb.update(1)
@@ -175,7 +206,7 @@ def train_model(data: np.ndarray) -> None:
                 loss = criterion(student_v, teacher_v)
                 test_loss += loss.item()
 
-                teacher_v = temp_teacher(teacher_v, temperature)
+                teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
                 loss = criterion(student_v, teacher_v)
                 test_tempatured_loss += loss.item()
 
