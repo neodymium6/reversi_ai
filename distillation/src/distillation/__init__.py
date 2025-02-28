@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 import matplotlib.pyplot as plt
+import json
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 MCTS_DATA2_PATH = "data/mcts_boards2.h5"
@@ -176,6 +177,7 @@ def train_model(data: np.ndarray) -> None:
     train_losses = []
     test_losses = []
     test_temperatured_losses = []
+    metrics = []
     # train loop
     for epoch in range(N_EPOCHS):
         print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
@@ -216,11 +218,22 @@ def train_model(data: np.ndarray) -> None:
             test_loss /= len(test_loader)
             test_tempatured_loss /= len(test_loader)
             print(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
-            n_games = 10
+            n_games = 50
             random_win_rate = vs_random(n_games, student_net)
             mcts_win_rate = vs_mcts(n_games, student_net)
             alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
             print(f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
+            metrics.append(
+                {
+                    "epoch": epoch,
+                    "train_loss": train_losses[-1][1],
+                    "test_loss": test_loss,
+                    "test_tempatured_loss": test_tempatured_loss,
+                    "random_win_rate": random_win_rate,
+                    "mcts_win_rate": mcts_win_rate,
+                    "alpha_beta_win_rate": alpha_beta_win_rate,
+                }
+            )
 
         test_losses.append((epoch+1, test_loss))
         test_temperatured_losses.append((epoch+1, test_tempatured_loss))
@@ -237,8 +250,16 @@ def train_model(data: np.ndarray) -> None:
         plt.tight_layout()
         plt.savefig("loss.png", dpi=300)
         plt.close()
+        # save metrics as json
+        with open("metrics.json", "w") as f:
+            json.dump(metrics, f, indent=4)
+        # save metrics as csv
+        with open("metrics.csv", "w") as f:
+            f.write("epoch,train_loss,test_loss,test_tempatured_loss,random_win_rate,mcts_win_rate,alpha_beta_win_rate\n")
+            for metric in metrics:
+                f.write(f"{metric['epoch']},{metric['train_loss']},{metric['test_loss']},{metric['test_tempatured_loss']},{metric['random_win_rate']},{metric['mcts_win_rate']},{metric['alpha_beta_win_rate']}\n")
 
-    n_games = 100
+    n_games = 300
     random_win_rate = vs_random(n_games, student_net)
     mcts_win_rate = vs_mcts(n_games, student_net)
     alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
