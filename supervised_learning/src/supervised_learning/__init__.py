@@ -5,6 +5,7 @@ import tqdm
 import numpy as np
 from supervised_learning.models.dense import DenseNet
 import torch
+from supervised_learning.vs import vs_random, vs_mcts, vs_alpha_beta
 
 DATA_PATH = "egaroucid.h5"
 MAX_DATA = int(1e6)
@@ -36,3 +37,7 @@ def main() -> None:
     print(f"{net(some_input)=}")
     print(f"{net.get_action(some_board)=}")
     print(f"{some_board.get_legal_moves_vec()=}")
+
+    print(vs_random(100, net))
+    print(vs_mcts(100, net))
+    print(vs_alpha_beta(100, net))
