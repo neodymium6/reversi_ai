@@ -4,7 +4,6 @@ from supervised_learning.models import ReversiNet
 
 
 def vs_random(n_games: int, net: ReversiNet) -> float:
-    print("Vs Random")
     net.eval()
     def two_game():
         win_count = 0
@@ -43,7 +42,6 @@ def vs_random(n_games: int, net: ReversiNet) -> float:
     return win_rate
 
 def vs_mcts(n_games: int, net: ReversiNet) -> float:
-    print("Vs MCTS")
     net.eval()
     search = MctsSearch(100, 1.0, 3)
     def two_game():
@@ -83,7 +81,6 @@ def vs_mcts(n_games: int, net: ReversiNet) -> float:
     return win_rate
 
 def vs_alpha_beta(n_games: int, net: ReversiNet, epsilon: float = 0.1) -> float:
-    print("Vs AlphaBeta")
     net.eval()
     def two_game():
         evaluator = MatrixEvaluator([
