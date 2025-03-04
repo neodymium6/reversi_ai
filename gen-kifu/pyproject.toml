@@ -11,6 +11,7 @@ dependencies = [
     "h5py>=3.12.1",
     "numpy>=2.2.2",
     "rust-reversi>=1.4.4",
+    "tqdm>=4.67.1",
 ]
 
 [project.scripts]
@@ -19,6 +20,7 @@ get-wthor = "gen_kifu:get_wthor"
 wtb2h5 = "gen_kifu:run_wtb2h5"
 mcts = "gen_kifu:mcts"
 get-egaroucid = "gen_kifu:get_egaroucid"
+egaroucid = "gen_kifu:egaroucid"
 
 [build-system]
 requires = ["hatchling"]

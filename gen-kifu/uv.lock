@@ -1,5 +1,15 @@
 version = 1
+revision = 1
 requires-python = ">=3.13"
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335 },
+]
 
 [[package]]
 name = "gen-kifu"
@@ -9,6 +19,7 @@ dependencies = [
     { name = "h5py" },
     { name = "numpy" },
     { name = "rust-reversi" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -16,6 +27,7 @@ requires-dist = [
     { name = "h5py", specifier = ">=3.12.1" },
     { name = "numpy", specifier = ">=2.2.2" },
     { name = "rust-reversi", specifier = ">=1.4.4" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
@@ -90,4 +102,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/39/4a/9ee87936a71d54d04f270c3724334361c9f2ccac56881d0d6c02961cae11/rust_reversi-1.4.4-cp313-cp313t-musllinux_1_2_armv7l.whl", hash = "sha256:50c4752e03e60daa0ea28da88b22921c4d8a74ded9ed1487b7549650a8b5950e", size = 848062 },
     { url = "https://files.pythonhosted.org/packages/af/34/1eb624ae72d6eb99ab22fd77f3d63de4eceb8c904eac8d5983a671f8b584/rust_reversi-1.4.4-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:2a4f553c5fcce093c640fbd0e70cb8d8a7bcec73c67b2264568a8bec1e96a138", size = 778441 },
     { url = "https://files.pythonhosted.org/packages/fb/c1/3610c8795cc2b78f289da4f59a95dcb7c36171833da8a732716d56fe2abf/rust_reversi-1.4.4-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:7fe1c8a3c7f36ad8676d845626911489159fcdd4c24f5706f9a6d2110286f7bc", size = 746876 },
+]
+
+[[package]]
+name = "tqdm"
+version = "4.67.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl", hash = "sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2", size = 78540 },
 ]

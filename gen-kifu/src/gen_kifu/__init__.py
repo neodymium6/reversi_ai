@@ -4,6 +4,7 @@ import sys
 import time
 from gen_kifu import wtb2h5
 from gen_kifu import mcts as mcts_gen
+from gen_kifu import egaroucid as egaroucid_gen
 
 WTHOR_PATH = "wthor"
 EGAROUCID_PATH = "egaroucid"
@@ -66,3 +67,6 @@ def get_egaroucid():
             print("Failed to remove Egaroucid files.")
         return
     print("Downloaded Egaroucid files.")
+
+def egaroucid() -> None:
+    egaroucid_gen.main()
