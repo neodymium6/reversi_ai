@@ -43,8 +43,7 @@ class DenseNet(ReversiNet):
         with torch.no_grad():
             values = self.forward(board_tensors)
         values = values.view(-1)
-        values = 1.0 - values
-        values = torch.clamp(values, 0.0, 1.0)
+        values = -values
         _best_value, best_index = torch.max(values, 0)
         best_action = legal_actions[best_index.item()]
         return best_action
