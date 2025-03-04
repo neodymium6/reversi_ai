@@ -4,11 +4,12 @@ from typing import List, Tuple
 import tqdm
 import numpy as np
 from supervised_learning.models.dense import DenseNet
+from supervised_learning.models import ReversiNet
 import torch
 from supervised_learning.vs import vs_random, vs_mcts, vs_alpha_beta
 
 DATA_PATH = "egaroucid.h5"
-MAX_DATA = int(1e6)
+MAX_DATA = int(1e4)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def load_data() -> List[Tuple[Board, int]]:
@@ -26,18 +27,28 @@ def load_data() -> List[Tuple[Board, int]]:
             loaded_data.append((board, data[2]))
     return loaded_data
 
+class ReversiDataset(torch.utils.data.Dataset):
+    def __init__(self, X: List[Tuple[Board, int]], net: ReversiNet):
+        self.X = X
+        self.net = net
+        print("Initializing ReversiDataset...")
+        self.scores = torch.tensor([x[1] for x in X], dtype=torch.float32)
+        self.board_tensors = torch.stack([self._board_to_input(x[0]) for x in tqdm.tqdm(X)])
+
+    def _board_to_input(self, board: Board) -> torch.Tensor:
+        return self.net.board_to_input(board)
+    
+    def __len__(self) -> int:
+        return len(self.X)
+    
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
+        return self.board_tensors[idx], self.scores[idx]
+
 def main() -> None:
     print("Loading data...")
     data = load_data()
 
     net = DenseNet(128)
     net.to(DEVICE)
-    some_board = data[0][0]
-    some_input = net.board_to_input(some_board).to(DEVICE)
-    print(f"{net(some_input)=}")
-    print(f"{net.get_action(some_board)=}")
-    print(f"{some_board.get_legal_moves_vec()=}")
 
-    print(vs_random(100, net))
-    print(vs_mcts(100, net))
-    print(vs_alpha_beta(100, net))
+    dataset = ReversiDataset(data, net)
