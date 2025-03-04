@@ -13,9 +13,10 @@ import matplotlib.pyplot as plt
 DATA_PATH = "egaroucid.h5"
 LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e5)
-BATCH_SIZE = 2048
+MAX_DATA = int(1e6)
+BATCH_SIZE = 16384
 LR = 1e-3
 WEIGHT_DECAY = 1e-4
 N_EPOCHS = 100
@@ -125,8 +126,11 @@ def main() -> None:
                 plt.savefig(LOSS_PLOT_PATH)
                 plt.close(fig)
 
+                torch.save(net.state_dict(), MODEL_PATH)
+
     n_games = 500
     random_win_rate = vs_random(n_games, net)
     mcts_win_rate = vs_mcts(n_games, net)
     alpha_beta_win_rate = vs_alpha_beta(n_games, net)
     print(f"Epoch {N_EPOCHS:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
+    torch.save(net.state_dict(), MODEL_PATH)
