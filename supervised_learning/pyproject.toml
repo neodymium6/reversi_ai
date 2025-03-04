@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 supervised-learning = "supervised_learning:main"
+export = "supervised_learning:export"
 
 [build-system]
 requires = ["hatchling"]

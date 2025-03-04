@@ -57,7 +57,7 @@ def main() -> None:
     print("Loading data...")
     data = load_data()
 
-    net = DenseNet(128)
+    net = DenseNet(96)
     net.to(DEVICE)
 
     data_train, data_test = train_test_split(data, test_size=0.1, shuffle=True)
@@ -110,11 +110,7 @@ def main() -> None:
             test_losses.append(total_loss / len(test_loader))
 
             if epoch % (N_EPOCHS // 10) == 0:
-                n_games = 100
-                random_win_rate = vs_random(n_games, net)
-                mcts_win_rate = vs_mcts(n_games, net)
-                alpha_beta_win_rate = vs_alpha_beta(n_games, net)
-                epoch_pb.write(f"Epoch {epoch:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
+                torch.save(net.state_dict(), MODEL_PATH)
 
                 fig, ax = plt.subplots()
                 ax.plot(train_losses, label="train")
@@ -126,7 +122,12 @@ def main() -> None:
                 plt.savefig(LOSS_PLOT_PATH)
                 plt.close(fig)
 
-                torch.save(net.state_dict(), MODEL_PATH)
+                n_games = 100
+                random_win_rate = vs_random(n_games, net)
+                mcts_win_rate = vs_mcts(n_games, net)
+                alpha_beta_win_rate = vs_alpha_beta(n_games, net)
+                epoch_pb.write(f"Epoch {epoch:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
+
 
     n_games = 500
     random_win_rate = vs_random(n_games, net)
@@ -134,3 +135,11 @@ def main() -> None:
     alpha_beta_win_rate = vs_alpha_beta(n_games, net)
     print(f"Epoch {N_EPOCHS:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
     torch.save(net.state_dict(), MODEL_PATH)
+
+def export():
+    net = DenseNet(96)
+    net.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
+    net.eval()
+    base64_str = net.save_weights_base64()
+    with open("weights.txt", "w") as f:
+        f.write(base64_str)
