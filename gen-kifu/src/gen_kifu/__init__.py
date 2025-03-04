@@ -6,6 +6,7 @@ from gen_kifu import wtb2h5
 from gen_kifu import mcts as mcts_gen
 
 WTHOR_PATH = "wthor"
+EGAROUCID_PATH = "egaroucid"
 
 def main() -> None:
     print("Hello from gen-kifu!")
@@ -44,3 +45,24 @@ def mcts() -> None:
             print("Usage: uv run mcts [--resume (optional)]")
             raise ValueError(f"Invalid argument: {sys.argv[1]}")
     mcts_gen.main(resume=resume)
+
+def get_egaroucid():
+    dir_path = pathlib.Path(EGAROUCID_PATH)
+    if dir_path.exists():
+        print("Egaroucid files already exist.")
+    dir_path.mkdir()
+    try:
+        if 0 != os.system("wget https://github.com/Nyanyan/Egaroucid/releases/download/training_data/Egaroucid_Train_Data.zip"):
+            raise Exception("Failed to download Egaroucid files.")
+        if 0 != os.system("unzip Egaroucid_Train_Data.zip -d egaroucid"):
+            raise Exception("Failed to unzip Egaroucid files.")
+        if 0 != os.system("rm Egaroucid_Train_Data.zip"):
+            raise Exception("Failed to remove Egaroucid zip files.")
+    except Exception as e:
+        print(e)
+        print("Failed to download Egaroucid files.")
+        print("Removing Egaroucid files...")
+        if 0 != os.system("rm -rf egaroucid"):
+            print("Failed to remove Egaroucid files.")
+        return
+    print("Downloaded Egaroucid files.")
