@@ -16,10 +16,11 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
 MAX_DATA = int(1e6)
-BATCH_SIZE = 16384
-LR = 1e-3
+BATCH_SIZE = 128
+LR = 1e-4
 WEIGHT_DECAY = 1e-4
 N_EPOCHS = 100
+HIDDEN_SIZE = 64
 
 def load_data() -> List[Tuple[Board, int]]:
     loaded_data: List[Tuple[Board, int]] = []
@@ -28,6 +29,8 @@ def load_data() -> List[Tuple[Board, int]]:
         if all_data.shape[0] > MAX_DATA:
             print(f"Data size is too large, truncate to {MAX_DATA}")
             all_data = np.random.choice(all_data, MAX_DATA, replace=False)
+        else:
+            print(f"Data size: {all_data.shape[0]}")
         for data in tqdm.tqdm(all_data):
             player_board = data[0]
             opponent_board = data[1]
@@ -57,7 +60,7 @@ def main() -> None:
     print("Loading data...")
     data = load_data()
 
-    net = DenseNet(96)
+    net = DenseNet(HIDDEN_SIZE)
     net.to(DEVICE)
 
     data_train, data_test = train_test_split(data, test_size=0.1, shuffle=True)
@@ -137,7 +140,7 @@ def main() -> None:
     torch.save(net.state_dict(), MODEL_PATH)
 
 def export():
-    net = DenseNet(96)
+    net = DenseNet(HIDDEN_SIZE)
     net.load_state_dict(torch.load(MODEL_PATH, weights_only=True))
     net.eval()
     base64_str = net.save_weights_base64()
