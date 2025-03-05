@@ -13,6 +13,10 @@ class DenseNet(ReversiNet):
         super(DenseNet, self).__init__()
         self.fc1 = torch.nn.Linear(INPUT_SIZE, hidden_size)
         self.fc2 = torch.nn.Linear(hidden_size, 1)
+        torch.nn.init.kaiming_normal_(self.fc1.weight)
+        torch.nn.init.kaiming_normal_(self.fc2.weight)
+        torch.nn.init.zeros_(self.fc1.bias)
+        torch.nn.init.zeros_(self.fc2.bias)
 
     def forward(self, x) -> torch.Tensor:
         x = self.fc1(x)
