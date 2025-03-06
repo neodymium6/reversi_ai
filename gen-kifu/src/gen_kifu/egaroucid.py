@@ -24,6 +24,33 @@ def main() -> None:
     print(f"Loaded {len(all_boards)} boards.")
     print("Converting boards...")
     all_boards = [(board.get_board()[0], board.get_board()[1], score) for board, score in tqdm.tqdm(all_boards)]
+    print("Rotating boards...")
+    rotated_boards = []
+    for player_board, opponent_board, score in tqdm.tqdm(all_boards):
+        rotated_boards.append((player_board, opponent_board, score))
+        rotate_90_p = rotate_right_90(player_board)
+        rotate_90_o = rotate_right_90(opponent_board)
+        rotated_boards.append((rotate_90_p, rotate_90_o, score))
+        rotate_180_p = rotate_right_90(rotate_90_p)
+        rotate_180_o = rotate_right_90(rotate_90_o)
+        rotated_boards.append((rotate_180_p, rotate_180_o, score))
+        rotate_270_p = rotate_right_90(rotate_180_p)
+        rotate_270_o = rotate_right_90(rotate_180_o)
+        rotated_boards.append((rotate_270_p, rotate_270_o, score))
+        flip_h_p = flip_horizontal(player_board)
+        flip_h_o = flip_horizontal(opponent_board)
+        rotated_boards.append((flip_h_p, flip_h_o, score))
+        flip_h_r90_p = flip_horizontal(rotate_90_p)
+        flip_h_r90_o = flip_horizontal(rotate_90_o)
+        rotated_boards.append((flip_h_r90_p, flip_h_r90_o, score))
+        flip_h_r180_p = flip_horizontal(rotate_180_p)
+        flip_h_r180_o = flip_horizontal(rotate_180_o)
+        rotated_boards.append((flip_h_r180_p, flip_h_r180_o, score))
+        flip_h_r270_p = flip_horizontal(rotate_270_p)
+        flip_h_r270_o = flip_horizontal(rotate_270_o)
+        rotated_boards.append((flip_h_r270_p, flip_h_r270_o, score))
+
+    all_boards += rotated_boards
     all_boards = np.array(all_boards, dtype=np.dtype([
         ("player_board", np.uint64),
         ("opponent_board", np.uint64),
@@ -49,3 +76,23 @@ def file_to_boards(file_path: pathlib.Path) -> List[Tuple[Board, int]]:
             boards.append((board, score))
     return boards
 
+def rotate_right_90(x: int) -> int:
+    res: int = 0
+    for i in range(8):
+        for j in range(8):
+            bit = 1 << (63 - (8 * i + j)) & x
+            if bit != 0:
+                res |= 1 << (63 - (8 * j + 7 - i))
+    return res
+
+def flip_horizontal(x: int) -> int:
+    res: int = 0
+    res |= (x & 0x0101010101010101) << 7
+    res |= (x & 0x0202020202020202) << 5
+    res |= (x & 0x0404040404040404) << 3
+    res |= (x & 0x0808080808080808) << 1
+    res |= (x & 0x1010101010101010) >> 1
+    res |= (x & 0x2020202020202020) >> 3
+    res |= (x & 0x4040404040404040) >> 5
+    res |= (x & 0x8080808080808080) >> 7
+    return res
