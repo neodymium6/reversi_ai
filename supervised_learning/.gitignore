@@ -1,5 +1,6 @@
 __pycache__/
 .venv/
 egaroucid.h5
+egaroucid_augmented.h5
 model.pth
 weights.txt

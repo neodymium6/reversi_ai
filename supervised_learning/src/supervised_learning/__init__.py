@@ -10,14 +10,14 @@ from supervised_learning.vs import vs_random, vs_mcts, vs_alpha_beta
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-DATA_PATH = "egaroucid.h5"
+DATA_PATH = "egaroucid_augmented.h5"
 LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
 MAX_DATA = int(1e6)
-BATCH_SIZE = 128
-LR = 1e-4
+BATCH_SIZE = 2048
+LR = 5e-3
 WEIGHT_DECAY = 1e-4
 N_EPOCHS = 100
 HIDDEN_SIZE = 64
@@ -28,6 +28,7 @@ def load_data() -> List[Tuple[Board, int]]:
         all_data = f["data"][:]
         if all_data.shape[0] > MAX_DATA:
             print(f"Data size is too large, truncate to {MAX_DATA}")
+            print(f"Using {MAX_DATA / all_data.shape[0] * 100:.2f}% of data")
             all_data = np.random.choice(all_data, MAX_DATA, replace=False)
         else:
             print(f"Data size: {all_data.shape[0]}")
@@ -71,16 +72,17 @@ def main() -> None:
 
     optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
-    lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
-        max_lr=LR,
-        total_steps=len(train_loader) * N_EPOCHS,
+        mode="min",
+        patience=5,
     )
 
     criterion = torch.nn.MSELoss()
 
     train_losses = []
     test_losses = []
+    lrs = []
     epoch_pb = tqdm.tqdm(range(N_EPOCHS))
     for epoch in epoch_pb:
         net.train()
@@ -97,7 +99,6 @@ def main() -> None:
             total_loss += loss.item()
             loss.backward()
             optimizer.step()
-            lr_scheduler.step()
         train_losses.append(total_loss / len(train_loader))
         net.eval()
         with torch.no_grad():
@@ -111,17 +112,29 @@ def main() -> None:
                 loss = criterion(targets, outputs.view(-1))
                 total_loss += loss.item()
             test_losses.append(total_loss / len(test_loader))
+            lr_scheduler.step(total_loss)
 
             if epoch % (N_EPOCHS // 10) == 0:
                 torch.save(net.state_dict(), MODEL_PATH)
 
-                fig, ax = plt.subplots()
-                ax.plot(train_losses, label="train")
-                ax.plot(test_losses, label="test")
-                ax.set_xlabel("Epoch")
-                ax.set_ylabel("Loss")
-                ax.legend()
-                ax.set_yscale("log")
+                fig, ax1 = plt.subplots(figsize=(10, 6))
+                color1 = 'blue'
+                color2 = 'orange'
+                ax1.plot(train_losses, label="train", color=color1)
+                ax1.plot(test_losses, label="test", color=color2)
+                ax1.set_xlabel("Epoch")
+                ax1.set_ylabel("Loss")
+                ax1.set_yscale("log")
+                ax1.legend(loc='upper left')
+
+                ax2 = ax1.twinx()
+                color3 = 'red'
+                ax2.plot(lrs, label="learning rate", color=color3, linestyle='--')
+                ax2.set_ylabel("Learning Rate")
+                ax2.legend(loc='upper right')
+                
+                plt.title(f"Training Progress - Epoch {epoch}")
+                plt.tight_layout()
                 plt.savefig(LOSS_PLOT_PATH)
                 plt.close(fig)
 
@@ -130,7 +143,7 @@ def main() -> None:
                 mcts_win_rate = vs_mcts(n_games, net)
                 alpha_beta_win_rate = vs_alpha_beta(n_games, net)
                 epoch_pb.write(f"Epoch {epoch:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
-
+        lrs.append(lr_scheduler.get_last_lr()[0])
 
     n_games = 500
     random_win_rate = vs_random(n_games, net)
