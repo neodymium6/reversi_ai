@@ -116,27 +116,7 @@ def main() -> None:
 
             if epoch % (N_EPOCHS // 10) == 0:
                 torch.save(net.state_dict(), MODEL_PATH)
-
-                fig, ax1 = plt.subplots(figsize=(10, 6))
-                color1 = 'blue'
-                color2 = 'orange'
-                ax1.plot(train_losses, label="train", color=color1)
-                ax1.plot(test_losses, label="test", color=color2)
-                ax1.set_xlabel("Epoch")
-                ax1.set_ylabel("Loss")
-                ax1.set_yscale("log")
-                ax1.legend(loc='upper left')
-
-                ax2 = ax1.twinx()
-                color3 = 'red'
-                ax2.plot(lrs, label="learning rate", color=color3, linestyle='--')
-                ax2.set_ylabel("Learning Rate")
-                ax2.legend(loc='upper right')
-                
-                plt.title(f"Training Progress - Epoch {epoch}")
-                plt.tight_layout()
-                plt.savefig(LOSS_PLOT_PATH)
-                plt.close(fig)
+                plot_loss(epoch, train_losses, test_losses, lrs)
 
                 n_games = 100
                 random_win_rate = vs_random(n_games, net)
@@ -144,13 +124,36 @@ def main() -> None:
                 alpha_beta_win_rate = vs_alpha_beta(n_games, net)
                 epoch_pb.write(f"Epoch {epoch:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
         lrs.append(lr_scheduler.get_last_lr()[0])
+    torch.save(net.state_dict(), MODEL_PATH)
+    plot_loss(N_EPOCHS, train_losses, test_losses, lrs)
 
     n_games = 500
     random_win_rate = vs_random(n_games, net)
     mcts_win_rate = vs_mcts(n_games, net)
     alpha_beta_win_rate = vs_alpha_beta(n_games, net)
     print(f"Epoch {N_EPOCHS:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
-    torch.save(net.state_dict(), MODEL_PATH)
+
+def plot_loss(epoch: int, train_losses: List[float], test_losses: List[float], lrs: List[float]) -> None:
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    color1 = 'blue'
+    color2 = 'orange'
+    ax1.plot(train_losses, label="train", color=color1)
+    ax1.plot(test_losses, label="test", color=color2)
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Loss")
+    ax1.set_yscale("log")
+    ax1.legend(loc='upper left')
+
+    ax2 = ax1.twinx()
+    color3 = 'red'
+    ax2.plot(lrs, label="learning rate", color=color3, linestyle='--')
+    ax2.set_ylabel("Learning Rate")
+    ax2.legend(loc='upper right')
+    
+    plt.title(f"Training Progress - Epoch {epoch}")
+    plt.tight_layout()
+    plt.savefig(LOSS_PLOT_PATH)
+    plt.close(fig)
 
 def export():
     net = DenseNet(HIDDEN_SIZE)
