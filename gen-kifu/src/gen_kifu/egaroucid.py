@@ -6,7 +6,7 @@ import numpy as np
 import h5py
 
 EGAROUCID_PATH = "egaroucid"
-H5_PATH = "egaroucid.h5"
+H5_PATH = "egaroucid_augmented.h5"
 DATA_PATH = pathlib.Path(EGAROUCID_PATH) / "0001_egaroucid_7_5_1_lv17"
 
 def main() -> None:
@@ -28,27 +28,35 @@ def main() -> None:
     rotated_boards = []
     for player_board, opponent_board, score in tqdm.tqdm(all_boards):
         rotated_boards.append((player_board, opponent_board, score))
+        rotated_boards.append((opponent_board, player_board, -score))
         rotate_90_p = rotate_right_90(player_board)
         rotate_90_o = rotate_right_90(opponent_board)
         rotated_boards.append((rotate_90_p, rotate_90_o, score))
+        rotated_boards.append((rotate_90_o, rotate_90_p, -score))
         rotate_180_p = rotate_right_90(rotate_90_p)
         rotate_180_o = rotate_right_90(rotate_90_o)
         rotated_boards.append((rotate_180_p, rotate_180_o, score))
+        rotated_boards.append((rotate_180_o, rotate_180_p, -score))
         rotate_270_p = rotate_right_90(rotate_180_p)
         rotate_270_o = rotate_right_90(rotate_180_o)
         rotated_boards.append((rotate_270_p, rotate_270_o, score))
+        rotated_boards.append((rotate_270_o, rotate_270_p, -score))
         flip_h_p = flip_horizontal(player_board)
         flip_h_o = flip_horizontal(opponent_board)
         rotated_boards.append((flip_h_p, flip_h_o, score))
+        rotated_boards.append((flip_h_o, flip_h_p, -score))
         flip_h_r90_p = flip_horizontal(rotate_90_p)
         flip_h_r90_o = flip_horizontal(rotate_90_o)
         rotated_boards.append((flip_h_r90_p, flip_h_r90_o, score))
+        rotated_boards.append((flip_h_r90_o, flip_h_r90_p, -score))
         flip_h_r180_p = flip_horizontal(rotate_180_p)
         flip_h_r180_o = flip_horizontal(rotate_180_o)
         rotated_boards.append((flip_h_r180_p, flip_h_r180_o, score))
+        rotated_boards.append((flip_h_r180_o, flip_h_r180_p, -score))
         flip_h_r270_p = flip_horizontal(rotate_270_p)
         flip_h_r270_o = flip_horizontal(rotate_270_o)
         rotated_boards.append((flip_h_r270_p, flip_h_r270_o, score))
+        rotated_boards.append((flip_h_r270_o, flip_h_r270_p, -score))
 
     all_boards += rotated_boards
     all_boards = np.array(all_boards, dtype=np.dtype([
