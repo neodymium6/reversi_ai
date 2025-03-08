@@ -15,10 +15,10 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6)
+MAX_DATA = int(1e6) * 10
 BATCH_SIZE = 2048
 LR = 5e-3
-WEIGHT_DECAY = 1e-4
+WEIGHT_DECAY = 1e-8
 N_EPOCHS = 100
 HIDDEN_SIZE = 64
 
@@ -67,8 +67,24 @@ def main() -> None:
     data_train, data_test = train_test_split(data, test_size=0.1, shuffle=True)
     train_dataset = ReversiDataset(data_train, net)
     test_dataset = ReversiDataset(data_test, net)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=10,
+        pin_memory=True,
+        prefetch_factor=1000,
+        persistent_workers=True,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=10,
+        pin_memory=True,
+        prefetch_factor=100,
+        persistent_workers=True,
+    )
 
     optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
 
