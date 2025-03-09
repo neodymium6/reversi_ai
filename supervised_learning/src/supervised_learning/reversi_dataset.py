@@ -133,7 +133,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is None:
             start_idx = 0
-            end_idx = len(self.X)
+            end_idx = len(self)
         else:
             per_worker = int(math.ceil(len(self) / worker_info.num_workers))
             worker_id = worker_info.id
