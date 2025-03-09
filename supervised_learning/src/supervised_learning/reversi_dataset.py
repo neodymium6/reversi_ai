@@ -10,6 +10,7 @@ import tqdm
 from typing import List, Tuple
 from rust_reversi import Board, Turn
 from supervised_learning.models.dense import DenseNet
+from multiprocessing import shared_memory
 
 def board_to_input(board: Board) -> np.ndarray:
     board_tensor = DenseNet.board_to_input(board)
@@ -18,14 +19,19 @@ def board_to_input(board: Board) -> np.ndarray:
 def preprocess_chunk(
     chunk_start: int,
     chunk_end: int,
-    X: List[Tuple[int, int]],
+    shared_memory_name: str,
+    shm_shape: Tuple[int, ...],
+    shm_dtype: np.dtype,
     temp_dir: str,
     board_to_input_func,
 ) -> Tuple[int, int, np.ndarray]:
+    existing_shm = shared_memory.SharedMemory(name=shared_memory_name)
+    shared_data = np.ndarray(shm_shape, dtype=shm_dtype, buffer=existing_shm.buf)
+
     temp_path = os.path.join(temp_dir, f"temp_chunk_{chunk_start}_{chunk_end}_{uuid.uuid4()}.dat")
     chunk_size = chunk_end - chunk_start
     board = Board()
-    board.set_board(X[0][0], X[0][1], Turn.BLACK)
+    board.set_board(shared_data[0][0], shared_data[0][1], Turn.BLACK)
     sample_shape = board_to_input_func(board).shape
     temp_memmap = np.memmap(
         temp_path,
@@ -36,13 +42,14 @@ def preprocess_chunk(
     try:
         for i, idx in enumerate(range(chunk_start, chunk_end)):
             board = Board()
-            board.set_board(X[idx][0], X[idx][1], Turn.BLACK)
+            board.set_board(shared_data[idx][0], shared_data[idx][1], Turn.BLACK)
             temp_memmap[i] = board_to_input_func(board)
         temp_memmap.flush()
         result = temp_memmap.copy()
         return chunk_start, chunk_end, result
     finally:
         del temp_memmap
+        existing_shm.close()
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
@@ -81,13 +88,20 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         print(f"Computing and storing board representations using {preprocess_workers} workers")
         preprocess_minibatch_size = len(X) // preprocess_workers
         preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
-        preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
+        preprocess_minibatch_size = min(preprocess_minibatch_size, int(5e6))
         chunk_indices = [(i, min(i + preprocess_minibatch_size, len(X))) for i in range(0, len(X), preprocess_minibatch_size)]
         # convert to (player_board, opponent_board) for pickle-able
         po = [(b.get_board()[0], b.get_board()[1]) for b, _s in X]
+        del X
+        po_np = np.array(po, dtype=np.uint64)
+        shm = shared_memory.SharedMemory(create=True, size=po_np.nbytes)
+        po_np_shared = np.ndarray(po_np.shape, dtype=po_np.dtype, buffer=shm.buf)
+        po_np_shared[:] = po_np
         preprocess_func = functools.partial(
             preprocess_chunk,
-            X=po,
+            shared_memory_name=shm.name,
+            shm_shape=po_np.shape,
+            shm_dtype=po_np.dtype,
             temp_dir=self.temp_dir,
             board_to_input_func=board_to_input,
         )
@@ -109,6 +123,8 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             mode='r',
             shape=total_shape
         )
+        shm.close()
+        shm.unlink()
     
     def __len__(self) -> int:
         return len(self.scores)

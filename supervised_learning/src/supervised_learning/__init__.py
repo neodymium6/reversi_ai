@@ -17,13 +17,13 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 10
+MAX_DATA = int(1e6) * 30
 BATCH_SIZE = 2048
 LR = 5e-3
 WEIGHT_DECAY = 1e-8
 N_EPOCHS = 100
 HIDDEN_SIZE = 64
-PREPROCESS_WORKERS = 10
+PREPROCESS_WORKERS = 20
 NUM_WORKERS = 20
 
 def load_data() -> List[Tuple[Board, int]]:
