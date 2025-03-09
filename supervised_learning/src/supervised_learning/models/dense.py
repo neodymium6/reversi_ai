@@ -24,7 +24,8 @@ class DenseNet(ReversiNet):
         x = self.fc2(x)
         return x
 
-    def board_to_input(self, board: Board) -> torch.Tensor:
+    @staticmethod
+    def board_to_input(board: Board) -> torch.Tensor:
         board_tensor = torch.zeros(128, dtype=torch.float32)
         player_board, opponent_board, _turn = board.get_board()
         for i in range(64):
