@@ -10,6 +10,7 @@ from supervised_learning.vs import vs_random, vs_mcts, vs_alpha_beta
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from supervised_learning.reversi_dataset import ReversiDataset
+from torch_optimizer import Lookahead
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 DATA_PATH = "egaroucid_augmented.h5"
@@ -17,17 +18,17 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 30
-BATCH_SIZE = 2048
-LR = 5e-3
-WEIGHT_DECAY = 1e-8
+MAX_DATA = int(1e6) * 20
+BATCH_SIZE = 512
+LR = 1e-3
+WEIGHT_DECAY = 1e-7
 N_EPOCHS = 100
-HIDDEN_SIZE = 64
-PREPROCESS_WORKERS = 20
-NUM_WORKERS = 20
+HIDDEN_SIZE = 96
+PREPROCESS_WORKERS = 16
+NUM_WORKERS = 4
 
-def load_data() -> List[Tuple[Board, int]]:
-    loaded_data: List[Tuple[Board, int]] = []
+def load_data() -> List[Tuple[int, int, int]]:
+    loaded_data: List[Tuple[int, int, int]] = []
     with h5py.File(DATA_PATH, "r") as f:
         all_data = f["data"][:]
         if all_data.shape[0] > MAX_DATA:
@@ -39,9 +40,8 @@ def load_data() -> List[Tuple[Board, int]]:
         for data in tqdm.tqdm(all_data, desc="Loading data", leave=False):
             player_board = data[0]
             opponent_board = data[1]
-            board = Board()
-            board.set_board(player_board, opponent_board, Turn.BLACK)
-            loaded_data.append((board, data[2]))
+            score = data[2]
+            loaded_data.append((player_board, opponent_board, score))
     return loaded_data
 
 def main() -> None:
@@ -65,16 +65,17 @@ def main() -> None:
         train_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
-        prefetch_factor=500,
+        prefetch_factor=50,
     )
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=BATCH_SIZE,
         num_workers=NUM_WORKERS,
-        prefetch_factor=100,
+        prefetch_factor=10,
     )
 
-    optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    base_optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    optimizer = Lookahead(base_optimizer, k=5, alpha=0.5)
 
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
@@ -82,7 +83,7 @@ def main() -> None:
         patience=5,
     )
 
-    criterion = torch.nn.MSELoss()
+    criterion = torch.nn.SmoothL1Loss()
 
     train_losses = []
     test_losses = []
@@ -99,8 +100,9 @@ def main() -> None:
             targets = targets.to(DEVICE)
             optimizer.zero_grad()
             outputs = net(inputs)
-            loss: torch.Tensor = criterion(targets, outputs.view(-1))
+            loss: torch.Tensor = criterion(outputs.view(-1), targets)
             total_loss += loss.item()
+            train_pb.set_description(f"Epoch {epoch} - Loss: {loss.item():.2f}")
             loss.backward()
             optimizer.step()
         train_losses.append(total_loss / len(train_loader))
@@ -113,21 +115,21 @@ def main() -> None:
                 inputs = inputs.to(DEVICE)
                 targets = targets.to(DEVICE)
                 outputs: torch.Tensor = net(inputs)
-                loss = criterion(targets, outputs.view(-1))
+                loss = criterion(outputs.view(-1), targets)
                 total_loss += loss.item()
             test_losses.append(total_loss / len(test_loader))
             lr_scheduler.step(total_loss)
+            lrs.append(lr_scheduler.get_last_lr()[0])
+            plot_loss(epoch, train_losses, test_losses, lrs)
 
             if epoch % (N_EPOCHS // 10) == 0:
                 torch.save(net.state_dict(), MODEL_PATH)
-                plot_loss(epoch, train_losses, test_losses, lrs)
 
                 n_games = 100
                 random_win_rate = vs_random(n_games, net)
                 mcts_win_rate = vs_mcts(n_games, net)
                 alpha_beta_win_rate = vs_alpha_beta(n_games, net)
                 epoch_pb.write(f"Epoch {epoch:{len(str(N_EPOCHS))}d}: Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}")
-        lrs.append(lr_scheduler.get_last_lr()[0])
     torch.save(net.state_dict(), MODEL_PATH)
     plot_loss(N_EPOCHS, train_losses, test_losses, lrs)
 

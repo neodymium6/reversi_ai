@@ -14,6 +14,7 @@ dependencies = [
     "rust-reversi>=1.4.4",
     "scikit-learn>=1.6.1",
     "torch>=2.6.0",
+    "torch-optimizer>=0.3.0",
     "tqdm>=4.67.1",
 ]
 

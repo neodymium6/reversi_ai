@@ -59,7 +59,7 @@ def preprocess_chunk(
 class ReversiDataset(torch.utils.data.IterableDataset):
     def __init__(
             self,
-            X: List[Tuple[Board, int]],
+            X: List[Tuple[int, int, int]],
             chunk_size: int = int(1e5),
             shuffle: bool = True,
             preprocess_workers: int = 1
@@ -68,9 +68,11 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         self.shuffle = shuffle
         self.temp_dir = "tmp"
         os.makedirs(self.temp_dir, exist_ok=True)
-        self.scores = torch.tensor([x[1] for x in X], dtype=torch.float32)
+        self.scores = torch.tensor([x[2] for x in X], dtype=torch.float32)
 
-        sample_tensor = torch.from_numpy(board_to_input(X[0][0]))
+        sample_board = Board()
+        sample_board.set_board(X[0][0], X[0][1], Turn.BLACK)
+        sample_tensor = torch.from_numpy(board_to_input(sample_board))
         self.tensor_shape = sample_tensor.shape
         self.mmap_path = os.path.join(self.temp_dir, f"tensor_cache_{uuid.uuid4()}.dat")
 
@@ -88,10 +90,10 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         print(f"Computing and storing board representations using {preprocess_workers} workers")
         preprocess_minibatch_size = len(X) // preprocess_workers
         preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
-        preprocess_minibatch_size = min(preprocess_minibatch_size, int(5e6))
+        preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
         chunk_indices = [(i, min(i + preprocess_minibatch_size, len(X))) for i in range(0, len(X), preprocess_minibatch_size)]
         # convert to (player_board, opponent_board) for pickle-able
-        po = [(b.get_board()[0], b.get_board()[1]) for b, _s in X]
+        po = [(x[0], x[1]) for x in X]
         del X
         po_np = np.array(po, dtype=np.uint64)
         shm = shared_memory.SharedMemory(create=True, size=po_np.nbytes)
@@ -105,6 +107,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             temp_dir=self.temp_dir,
             board_to_input_func=board_to_input,
         )
+        del po_np
         with ProcessPoolExecutor(max_workers=preprocess_workers) as executor:
             futures = [
                 executor.submit(preprocess_func, chunk_start, chunk_end)
@@ -114,6 +117,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
                 chunk_start, chunk_end, data = future.result()
                 self.mmap_tensors[chunk_start:chunk_end] = data
                 self.mmap_tensors.flush()
+                del data
         print(f"Completed preprocessing. Data stored at {self.mmap_path}")
 
         del self.mmap_tensors
