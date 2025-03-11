@@ -1,5 +1,4 @@
 import h5py
-from rust_reversi import Board, Turn
 from typing import List, Tuple
 import tqdm
 import numpy as np
@@ -18,12 +17,12 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 20
+MAX_DATA = int(1e6) * 20 * 3
 BATCH_SIZE = 512
 LR = 1e-3
-WEIGHT_DECAY = 1e-7
+WEIGHT_DECAY = 5e-7
 N_EPOCHS = 100
-HIDDEN_SIZE = 96
+HIDDEN_SIZE = 64
 PREPROCESS_WORKERS = 16
 NUM_WORKERS = 4
 

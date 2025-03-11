@@ -24,7 +24,7 @@ def preprocess_chunk(
     shm_dtype: np.dtype,
     temp_dir: str,
     board_to_input_func,
-) -> Tuple[int, int, np.ndarray]:
+) -> Tuple[int, int, str]:
     existing_shm = shared_memory.SharedMemory(name=shared_memory_name)
     shared_data = np.ndarray(shm_shape, dtype=shm_dtype, buffer=existing_shm.buf)
 
@@ -45,16 +45,10 @@ def preprocess_chunk(
             board.set_board(shared_data[idx][0], shared_data[idx][1], Turn.BLACK)
             temp_memmap[i] = board_to_input_func(board)
         temp_memmap.flush()
-        result = temp_memmap.copy()
-        return chunk_start, chunk_end, result
+        return chunk_start, chunk_end, temp_path
     finally:
         del temp_memmap
         existing_shm.close()
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception as e:
-                print(f"Warning: Could not delete temporary file {temp_path}: {e}")
 
 class ReversiDataset(torch.utils.data.IterableDataset):
     def __init__(
@@ -114,10 +108,17 @@ class ReversiDataset(torch.utils.data.IterableDataset):
                 for chunk_start, chunk_end in chunk_indices
             ]
             for future in tqdm.tqdm(futures, desc="Collecting results", leave=False):
-                chunk_start, chunk_end, data = future.result()
-                self.mmap_tensors[chunk_start:chunk_end] = data
+                chunk_start, chunk_end, temp_path = future.result()
+                temp_memmap = np.memmap(
+                    temp_path,
+                    dtype=np.float32,
+                    mode="r",
+                    shape=(chunk_end - chunk_start, *self.tensor_shape)
+                )
+                self.mmap_tensors[chunk_start:chunk_end] = temp_memmap
                 self.mmap_tensors.flush()
-                del data
+                del temp_memmap
+                os.remove(temp_path)
         print(f"Completed preprocessing. Data stored at {self.mmap_path}")
 
         del self.mmap_tensors
