@@ -56,11 +56,13 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             X: List[Tuple[int, int, int]],
             chunk_size: int = int(1e5),
             shuffle: bool = True,
-            preprocess_workers: int = 1
+            preprocess_workers: int = 1,
+            verbose: bool = True,
         ):
         self.chunk_size = chunk_size
         self.shuffle = shuffle
         self.temp_dir = "tmp"
+        self.verbose = verbose
         os.makedirs(self.temp_dir, exist_ok=True)
         self.scores = torch.tensor([x[2] for x in X], dtype=torch.float32)
 
@@ -72,7 +74,8 @@ class ReversiDataset(torch.utils.data.IterableDataset):
 
         total_shape = (len(X), *self.tensor_shape)
         total_size = np.prod(total_shape)
-        print(f"Creating memmap of shape {total_shape} ({total_size * 4 / (1024**3):.2f} GB)")
+        if verbose:
+            print(f"Creating memmap of shape {total_shape} ({total_size * 4 / (1024**3):.2f} GB)")
 
         self.mmap_tensors = np.memmap(
             self.mmap_path,
@@ -81,7 +84,8 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             shape=total_shape,
         )
 
-        print(f"Computing and storing board representations using {preprocess_workers} workers")
+        if verbose:
+            print(f"Computing and storing board representations using {preprocess_workers} workers")
         preprocess_minibatch_size = len(X) // preprocess_workers
         preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
         preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
@@ -119,7 +123,8 @@ class ReversiDataset(torch.utils.data.IterableDataset):
                 self.mmap_tensors.flush()
                 del temp_memmap
                 os.remove(temp_path)
-        print(f"Completed preprocessing. Data stored at {self.mmap_path}")
+        if verbose:
+            print(f"Completed preprocessing. Data stored at {self.mmap_path}")
 
         del self.mmap_tensors
         self.mmap_tensors = np.memmap(
@@ -162,6 +167,5 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         if hasattr(self, 'mmap_path') and os.path.exists(self.mmap_path):
             try:
                 os.remove(self.mmap_path)
-                print(f"Cleaned up temporary file: {self.mmap_path}")
             except Exception as e:
                 print(f"Warning: Could not delete temporary file {self.mmap_path}: {e}")
