@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from supervised_learning.reversi_dataset import ReversiDataset
 from torch_optimizer import Lookahead
+from supervised_learning.losses.sign_aware import SignAwareMAE
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 DATA_PATH = "egaroucid_augmented.h5"
@@ -82,7 +83,9 @@ def main() -> None:
         patience=5,
     )
 
-    criterion = torch.nn.SmoothL1Loss()
+    criterion = SignAwareMAE(
+        sign_penalty_weight=4.0,
+    )
 
     train_losses = []
     test_losses = []
@@ -101,7 +104,8 @@ def main() -> None:
             outputs = net(inputs)
             loss: torch.Tensor = criterion(outputs.view(-1), targets)
             total_loss += loss.item()
-            train_pb.set_description(f"Epoch {epoch} - Loss: {loss.item():.2f}")
+            train_pb.set_description(f"Epoch {epoch} - Loss: {loss.item():5.2f}")
+            torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0)
             loss.backward()
             optimizer.step()
         train_losses.append(total_loss / len(train_loader))
