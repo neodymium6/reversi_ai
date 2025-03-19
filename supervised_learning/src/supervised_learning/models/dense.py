@@ -7,38 +7,6 @@ from supervised_learning.models import ReversiNet
 
 INPUT_SIZE = 128
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# PATTERNS = [
-#     0x00FF000000000000,
-#     0x6012080402010100,
-#     0x0000FF0000000000,
-#     0xC020100804020101,
-#     0x000000FF00000000,
-#     0xE0E0E00000000000,
-#     0x1048040201000200,
-#     0xC0C0201008040201,
-#     0xFF42000000000000,
-#     0xF0E0C08000000000,
-#     0xBD3C000000000000,
-#     0xC0E0703000000000,
-#     0xFF24000000000000,
-#     0xF8C0808080000000,
-#     0xC0F0605000000000,
-#     0x3C183C0000000000,
-# ]
-# def rotate_right_90(x: int) -> int:
-#     res: int = 0
-#     for i in range(8):
-#         for j in range(8):
-#             bit = 1 << (63 - (8 * i + j)) & x
-#             if bit != 0:
-#                 res |= 1 << (63 - (8 * j + 7 - i))
-#     return res
-# ALL_PATTERNS = []
-# for pattern in PATTERNS:
-#     ALL_PATTERNS.append(pattern)
-#     for _ in range(3):
-#         pattern = rotate_right_90(pattern)
-#         ALL_PATTERNS.append(pattern)
 
 class DenseNet(ReversiNet):
     def __init__(self, hidden_size: int):
@@ -67,16 +35,6 @@ class DenseNet(ReversiNet):
             if opponent_board & bit:
                 board_tensor[i + 64] = 1.0
         return board_tensor
-        # board_tensor = torch.zeros(len(ALL_PATTERNS) * 2, dtype=torch.float32)
-        # player_board, opponent_board, _turn = board.get_board()
-        # for i, pattern in enumerate(ALL_PATTERNS):
-        #     player_bit: int = player_board & pattern
-        #     player_cnt: int = player_bit.bit_count()
-        #     opponent_bit: int = opponent_board & pattern
-        #     opponent_cnt: int = opponent_bit.bit_count()
-        #     board_tensor[i] = float(player_cnt)
-        #     board_tensor[i + len(ALL_PATTERNS)] = float(opponent_cnt)
-        # return board_tensor
 
     def get_action(self, board: Board) -> int:
         legal_actions = board.get_legal_moves_vec()
