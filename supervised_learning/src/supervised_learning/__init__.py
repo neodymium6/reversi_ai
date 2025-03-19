@@ -55,19 +55,19 @@ def get_dataloaders(verbose=True) -> Tuple[torch.utils.data.DataLoader, torch.ut
     data_train, data_test = train_test_split(data, test_size=0.1, shuffle=True)
     del data
     train_dataset = ReversiDataset(
-        X=data_train,
         model_class=MODEL_CLASS,
         preprocess_workers=PREPROCESS_WORKERS,
         verbose=verbose,
     )
+    train_dataset.append_data(data_train)
     del data_train
     test_dataset = ReversiDataset(
-        X=data_test,
         model_class=MODEL_CLASS,
         shuffle=False,
         preprocess_workers=PREPROCESS_WORKERS,
         verbose=verbose,
     )
+    test_dataset.append_data(data_test)
     del data_test
     train_loader = torch.utils.data.DataLoader(
         train_dataset,

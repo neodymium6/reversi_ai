@@ -55,7 +55,6 @@ def preprocess_chunk(
 class ReversiDataset(torch.utils.data.IterableDataset):
     def __init__(
             self,
-            X: List[Tuple[int, int, int]],
             model_class: Type[ReversiNet],
             chunk_size: int = int(1e5),
             shuffle: bool = True,
@@ -65,33 +64,40 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         self.chunk_size = chunk_size
         self.shuffle = shuffle
         self.temp_dir = "tmp"
+        self.model_class = model_class
+        self.preprocess_workers = preprocess_workers
         self.verbose = verbose
         os.makedirs(self.temp_dir, exist_ok=True)
-        self.scores = torch.tensor([x[2] for x in X], dtype=torch.float32)
 
+        self.scores = torch.tensor([], dtype=torch.float32)
         sample_board = Board()
-        sample_board.set_board(X[0][0], X[0][1], Turn.BLACK)
-        sample_tensor = torch.from_numpy(board_to_input(sample_board, model_class))
+        sample_tensor = torch.from_numpy(board_to_input(sample_board, self.model_class))
         self.tensor_shape = sample_tensor.shape
         self.mmap_path = os.path.join(self.temp_dir, f"tensor_cache_{uuid.uuid4()}.dat")
-
-        total_shape = (len(X), *self.tensor_shape)
-        total_size = np.prod(total_shape)
-        if verbose:
-            print(f"Creating memmap of shape {total_shape} ({total_size * 4 / (1024**3):.2f} GB)")
-
         self.mmap_tensors = np.memmap(
             self.mmap_path,
             dtype=np.float32,
             mode="w+",
-            shape=total_shape,
+            shape=(0, *self.tensor_shape),
         )
 
-        if verbose:
-            print(f"Computing and storing board representations using {preprocess_workers} workers")
-        preprocess_minibatch_size = len(X) // preprocess_workers
-        preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
-        preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
+    def append_data(self, X: List[Tuple[int, int, int]]):
+        last_idx = len(self)
+        total_shape = (len(X) + len(self), *self.tensor_shape)
+        total_size = np.prod(total_shape)
+        if self.verbose:
+            print(f"Appending {len(X)} samples to memmap, total shape: {total_shape}, total size: {total_size * 4 / (1024**3):.2f} GB")
+        self.scores = torch.cat([self.scores, torch.tensor([x[2] for x in X], dtype=torch.float32)])
+        appending_byte_size = len(X) * np.prod(self.tensor_shape) * 4
+        del self.mmap_tensors
+        os.truncate(self.mmap_path, os.path.getsize(self.mmap_path) + appending_byte_size)
+        self.mmap_tensors = np.memmap(
+            self.mmap_path,
+            dtype=np.float32,
+            mode='r+',
+            shape=total_shape
+        )
+        preprocess_minibatch_size = self.get_preprocess_minibatch_size(len(X))
         chunk_indices = [(i, min(i + preprocess_minibatch_size, len(X))) for i in range(0, len(X), preprocess_minibatch_size)]
         po = [(x[0], x[1]) for x in X]
         del X
@@ -105,10 +111,10 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             shm_shape=po_np.shape,
             shm_dtype=po_np.dtype,
             temp_dir=self.temp_dir,
-            model_class=model_class
+            model_class=self.model_class,
         )
         del po_np
-        with ProcessPoolExecutor(max_workers=preprocess_workers) as executor:
+        with ProcessPoolExecutor(max_workers=self.preprocess_workers) as executor:
             futures = [
                 executor.submit(preprocess_func, chunk_start, chunk_end)
                 for chunk_start, chunk_end in chunk_indices
@@ -121,11 +127,11 @@ class ReversiDataset(torch.utils.data.IterableDataset):
                     mode="r",
                     shape=(chunk_end - chunk_start, *self.tensor_shape)
                 )
-                self.mmap_tensors[chunk_start:chunk_end] = temp_memmap
+                self.mmap_tensors[last_idx + chunk_start:last_idx + chunk_end] = temp_memmap
                 self.mmap_tensors.flush()
                 del temp_memmap
                 os.remove(temp_path)
-        if verbose:
+        if self.verbose:
             print(f"Completed preprocessing. Data stored at {self.mmap_path}")
 
         del self.mmap_tensors
@@ -137,7 +143,13 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         )
         shm.close()
         shm.unlink()
-    
+
+    def get_preprocess_minibatch_size(self, data_len: int) -> int:
+        preprocess_minibatch_size = data_len // self.preprocess_workers
+        preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
+        preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
+        return preprocess_minibatch_size
+
     def __len__(self) -> int:
         return len(self.scores)
 
