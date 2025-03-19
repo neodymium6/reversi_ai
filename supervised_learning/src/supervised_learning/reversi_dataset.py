@@ -10,10 +10,12 @@ import tqdm
 from typing import List, Tuple
 from rust_reversi import Board, Turn
 from supervised_learning.models.dense import DenseNet
+from supervised_learning.models.cnn import ConvNet
 from multiprocessing import shared_memory
 
 def board_to_input(board: Board) -> np.ndarray:
-    board_tensor = DenseNet.board_to_input(board)
+    # board_tensor = DenseNet.board_to_input(board)
+    board_tensor = ConvNet.board_to_input(board)
     return board_tensor.numpy()
 
 def preprocess_chunk(

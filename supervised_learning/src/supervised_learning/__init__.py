@@ -18,15 +18,15 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 20
-BATCH_SIZE = 2048
+MAX_DATA = int(1e6) * 1
+BATCH_SIZE = 512
 LR = 1e-3
-WEIGHT_DECAY = 1e-5
+WEIGHT_DECAY = 1e-6
 N_EPOCHS = 100
 HIDDEN_SIZE = 64
 PREPROCESS_WORKERS = 16
 NUM_WORKERS = 4
-DATA_LOADER_UPDATE_PER_EPOCH = 20
+DATA_LOADER_UPDATE_PER_EPOCH = 200
 
 def load_data(verbose: bool) -> List[Tuple[int, int, int]]:
     if verbose:
@@ -85,7 +85,9 @@ def get_dataloaders(verbose=True) -> Tuple[torch.utils.data.DataLoader, torch.ut
     return train_loader, test_loader, int(time_elapsed)
 
 def main() -> None:
-    net = DenseNet(HIDDEN_SIZE)
+    # net = DenseNet(HIDDEN_SIZE)
+    from supervised_learning.models.cnn import ConvNet
+    net = ConvNet()
     net.to(DEVICE)
 
     train_loader, test_loader, get_dataloader_time = get_dataloaders()
@@ -100,7 +102,7 @@ def main() -> None:
     )
 
     criterion = SignAwareMAE(
-        sign_penalty_weight=4.0,
+        sign_penalty_weight=0.0,
     )
 
     train_losses = []
