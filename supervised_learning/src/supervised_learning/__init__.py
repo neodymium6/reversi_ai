@@ -27,6 +27,7 @@ HIDDEN_SIZE = 64
 PREPROCESS_WORKERS = 16
 NUM_WORKERS = 4
 DATA_LOADER_UPDATE_PER_EPOCH = 200
+MODEL_CLASS = DenseNet
 
 def load_data(verbose: bool) -> List[Tuple[int, int, int]]:
     if verbose:
@@ -55,13 +56,15 @@ def get_dataloaders(verbose=True) -> Tuple[torch.utils.data.DataLoader, torch.ut
     data_train, data_test = train_test_split(data, test_size=0.1, shuffle=True)
     del data
     train_dataset = ReversiDataset(
-        data_train,
+        X=data_train,
+        model_class=MODEL_CLASS,
         preprocess_workers=PREPROCESS_WORKERS,
         verbose=verbose,
     )
     del data_train
     test_dataset = ReversiDataset(
-        data_test,
+        X=data_test,
+        model_class=MODEL_CLASS,
         shuffle=False,
         preprocess_workers=PREPROCESS_WORKERS,
         verbose=verbose,
@@ -85,9 +88,7 @@ def get_dataloaders(verbose=True) -> Tuple[torch.utils.data.DataLoader, torch.ut
     return train_loader, test_loader, int(time_elapsed)
 
 def main() -> None:
-    # net = DenseNet(HIDDEN_SIZE)
-    from supervised_learning.models.cnn import ConvNet
-    net = ConvNet()
+    net = DenseNet(HIDDEN_SIZE)
     net.to(DEVICE)
 
     train_loader, test_loader, get_dataloader_time = get_dataloaders()

@@ -9,13 +9,12 @@ import numpy as np
 import tqdm
 from typing import List, Tuple
 from rust_reversi import Board, Turn
-from supervised_learning.models.dense import DenseNet
-from supervised_learning.models.cnn import ConvNet
+from supervised_learning.models import ReversiNet
 from multiprocessing import shared_memory
+from typing import Type
 
-def board_to_input(board: Board) -> np.ndarray:
-    # board_tensor = DenseNet.board_to_input(board)
-    board_tensor = ConvNet.board_to_input(board)
+def board_to_input(board: Board, model_class: Type[ReversiNet]) -> np.ndarray:
+    board_tensor: torch.Tensor = model_class.board_to_input(board)
     return board_tensor.numpy()
 
 def preprocess_chunk(
@@ -25,10 +24,11 @@ def preprocess_chunk(
     shm_shape: Tuple[int, ...],
     shm_dtype: np.dtype,
     temp_dir: str,
-    board_to_input_func,
+    model_class: Type[ReversiNet],
 ) -> Tuple[int, int, str]:
     existing_shm = shared_memory.SharedMemory(name=shared_memory_name)
     shared_data = np.ndarray(shm_shape, dtype=shm_dtype, buffer=existing_shm.buf)
+    board_to_input_func = functools.partial(board_to_input, model_class=model_class)
 
     temp_path = os.path.join(temp_dir, f"temp_chunk_{chunk_start}_{chunk_end}_{uuid.uuid4()}.dat")
     chunk_size = chunk_end - chunk_start
@@ -56,6 +56,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
     def __init__(
             self,
             X: List[Tuple[int, int, int]],
+            model_class: Type[ReversiNet],
             chunk_size: int = int(1e5),
             shuffle: bool = True,
             preprocess_workers: int = 1,
@@ -70,7 +71,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
 
         sample_board = Board()
         sample_board.set_board(X[0][0], X[0][1], Turn.BLACK)
-        sample_tensor = torch.from_numpy(board_to_input(sample_board))
+        sample_tensor = torch.from_numpy(board_to_input(sample_board, model_class))
         self.tensor_shape = sample_tensor.shape
         self.mmap_path = os.path.join(self.temp_dir, f"tensor_cache_{uuid.uuid4()}.dat")
 
@@ -92,7 +93,6 @@ class ReversiDataset(torch.utils.data.IterableDataset):
         preprocess_minibatch_size = max(preprocess_minibatch_size, int(1e4))
         preprocess_minibatch_size = min(preprocess_minibatch_size, int(1e6))
         chunk_indices = [(i, min(i + preprocess_minibatch_size, len(X))) for i in range(0, len(X), preprocess_minibatch_size)]
-        # convert to (player_board, opponent_board) for pickle-able
         po = [(x[0], x[1]) for x in X]
         del X
         po_np = np.array(po, dtype=np.uint64)
@@ -105,7 +105,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             shm_shape=po_np.shape,
             shm_dtype=po_np.dtype,
             temp_dir=self.temp_dir,
-            board_to_input_func=board_to_input,
+            model_class=model_class
         )
         del po_np
         with ProcessPoolExecutor(max_workers=preprocess_workers) as executor:
