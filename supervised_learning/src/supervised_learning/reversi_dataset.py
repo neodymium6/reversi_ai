@@ -56,7 +56,7 @@ class ReversiDataset(torch.utils.data.IterableDataset):
     def __init__(
             self,
             model_class: Type[ReversiNet],
-            chunk_size: int = int(1e5),
+            chunk_size: int = int(1e6),
             shuffle: bool = True,
             preprocess_workers: int = 1,
             verbose: bool = True,
@@ -164,16 +164,22 @@ class ReversiDataset(torch.utils.data.IterableDataset):
             start_idx = worker_id * per_worker
             end_idx = min(start_idx + per_worker, len(self))
         indices = list(range(start_idx, end_idx))
-        if self.shuffle:
-            random.shuffle(indices)
 
         for chunk_start in range(0, len(indices), self.chunk_size):
             chunk_indices = indices[chunk_start:chunk_start + self.chunk_size]
             memory_tensor = torch.from_numpy(self.mmap_tensors[chunk_indices].copy())
-            for mem_idx, idx in enumerate(chunk_indices):
-                tensor = memory_tensor[mem_idx]
-                score = self.scores[idx]
+            scores = self.scores[chunk_indices]
+            yielding_indices = list(range(len(chunk_indices)))
+            if self.shuffle:
+                random.shuffle(yielding_indices)
+            for idx in yielding_indices:
+                tensor = memory_tensor[idx]
+                score = scores[idx]
                 yield tensor, score
+            del memory_tensor
+            del chunk_indices
+            del scores
+            del yielding_indices
 
     def __del__(self):
         if hasattr(self, 'mmap_tensors'):
