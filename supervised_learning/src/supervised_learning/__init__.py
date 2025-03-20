@@ -114,15 +114,22 @@ def main() -> None:
         device=DEVICE,
         loss_plot_path=LOSS_PLOT_PATH,
         model_path=MODEL_PATH,
+        epochs=N_EPOCHS,
         middle_n_games=100,
         final_n_games=500,
         data_loader_update_per_epoch=DATA_LOADER_UPDATE_PER_EPOCH,
         verbose=True,
     )
-    cnt = 0
-    for _ in trainer.train(N_EPOCHS):
-        cnt += 1
-    print(f"Training completed in {cnt} epochs")
+    try:
+        cnt = 0
+        for _ in trainer.train():
+            cnt += 1
+        print(f"Training completed in {cnt} epochs")
+    except KeyboardInterrupt:
+        print("Training interrupted")
+        torch.save(net.state_dict(), MODEL_PATH)
+        print("Model saved")
+
 
 def export():
     net = DenseNet(HIDDEN_SIZE)

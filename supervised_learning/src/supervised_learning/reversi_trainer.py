@@ -16,6 +16,7 @@ class Trainer:
             device: torch.device,
             loss_plot_path: str,
             model_path: str,
+            epochs: int,
             middle_n_games: int = 100,
             final_n_games: int = 500,
             data_loader_update_per_epoch: int = 10,
@@ -29,14 +30,16 @@ class Trainer:
         self.device = device
         self.loss_plot_path = loss_plot_path
         self.model_path = model_path
+        self.epochs = epochs
         self.middle_n_games = middle_n_games
         self.final_n_games = final_n_games
         self.data_loader_update_per_epoch = data_loader_update_per_epoch
         self.verbose = verbose
-        self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             self.optimizer,
-            mode="min",
-            patience=5,
+            max_lr=1e-4,
+            epochs=epochs,
+            steps_per_epoch=len(self.train_loader),
         )
         self.train_losses = []
         self.test_losses = []
@@ -71,8 +74,10 @@ class Trainer:
         alpha_beta_win_rate = vs_alpha_beta(n_games, self.net)
         return f"Win rate vs random: {random_win_rate:.4f}, vs MCTS: {mcts_win_rate:.4f}, vs alpha beta: {alpha_beta_win_rate:.4f}"
 
-    def train(self, epochs: int) -> Iterable[None]:
-        epoch_pb = tqdm.tqdm(range(epochs), leave=False)
+    def train(self) -> Iterable[None]:
+        lr_scheduler_step = 0
+        lr_scheduler_step_max = 100 * len(self.train_loader)
+        epoch_pb = tqdm.tqdm(range(self.epochs), leave=False)
         for epoch in epoch_pb:
             self.net.train()
             total_loss = 0.0
@@ -90,6 +95,10 @@ class Trainer:
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 1.0)
                 loss.backward()
                 self.optimizer.step()
+                if lr_scheduler_step < lr_scheduler_step_max:
+                    # iterative dataset with workers may cause more steps than total_steps
+                    lr_scheduler_step += 1
+                    self.lr_scheduler.step()
             self.train_losses.append(total_loss / len(self.train_loader))
             self.net.eval()
             with torch.no_grad():
@@ -105,16 +114,15 @@ class Trainer:
                     total_loss += loss.item()
                     test_pb.set_description(f"Epoch {epoch} - Test Loss: {loss.item():5.2f}")
                 self.test_losses.append(total_loss / len(self.test_loader))
-                self.lr_scheduler.step(total_loss)
                 self.lrs.append(self.lr_scheduler.get_last_lr()[0])
             self.plot_loss(epoch)
 
-            if epoch % (epochs // 10) == 0:
+            if epoch % (self.epochs // 10) == 0:
                 torch.save(self.net.state_dict(), self.model_path)
                 if self.verbose:
-                    epoch_pb.write(f"Epoch {epoch:{len(str(epochs))}d}: {self.eval_with_win_rate(self.middle_n_games)}")
+                    epoch_pb.write(f"Epoch {epoch:{len(str(self.epochs))}d}: {self.eval_with_win_rate(self.middle_n_games)}")
 
-            if epoch % self.data_loader_update_per_epoch == self.data_loader_update_per_epoch - 1 and epoch != epochs - 1:
+            if epoch % self.data_loader_update_per_epoch == self.data_loader_update_per_epoch - 1 and epoch != self.epochs - 1:
                 start_time = time.time()
                 end_time_pred = time.localtime(start_time + self.get_dataloader_time)
                 end_time_pred = time.strftime("%H:%M:%S", end_time_pred)
@@ -123,6 +131,6 @@ class Trainer:
                 self.train_loader, self.test_loader, self.get_dataloader_time = self.get_data_loader_func(False)
             yield
         torch.save(self.net.state_dict(), self.model_path)
-        self.plot_loss(epochs)
+        self.plot_loss(self.epochs)
         if self.verbose:
             epoch_pb.write(f"Training completed. {self.eval_with_win_rate(self.final_n_games)}")
