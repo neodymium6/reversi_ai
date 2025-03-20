@@ -17,7 +17,7 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 200
+MAX_DATA = int(1e6) * 1
 BATCH_SIZE = 512
 LR = 1e-3
 WEIGHT_DECAY = 1e-6
@@ -122,9 +122,12 @@ def main() -> None:
     )
     try:
         cnt = 0
+        start_time = time.time()
         for _ in trainer.train():
             cnt += 1
+        elapsed = time.time() - start_time
         print(f"Training completed in {cnt} epochs")
+        print(f"Elapsed time: {int(elapsed // 3600)}h {int((elapsed % 3600) // 60)}m {int(elapsed % 60)}s")
     except KeyboardInterrupt:
         print("Training interrupted")
         torch.save(net.state_dict(), MODEL_PATH)
