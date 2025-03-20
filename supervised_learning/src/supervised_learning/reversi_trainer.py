@@ -37,7 +37,8 @@ class Trainer:
         self.verbose = verbose
         self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             self.optimizer,
-            max_lr=1e-4,
+            # max_lr=2e-5,
+            max_lr=7e-3,
             epochs=epochs,
             steps_per_epoch=len(self.train_loader),
         )
@@ -120,7 +121,7 @@ class Trainer:
             if epoch % (self.epochs // 10) == 0:
                 torch.save(self.net.state_dict(), self.model_path)
                 if self.verbose:
-                    epoch_pb.write(f"Epoch {epoch:{len(str(self.epochs))}d}: {self.eval_with_win_rate(self.middle_n_games)}")
+                    epoch_pb.write(f"Epoch {epoch:{len(str(self.epochs))}d}: {self.eval_with_win_rate(self.middle_n_games)}, Loss: {self.train_losses[-1]:5.2f}, Test Loss: {self.test_losses[-1]:5.2f}")
 
             if epoch % self.data_loader_update_per_epoch == self.data_loader_update_per_epoch - 1 and epoch != self.epochs - 1:
                 start_time = time.time()
@@ -133,4 +134,4 @@ class Trainer:
         torch.save(self.net.state_dict(), self.model_path)
         self.plot_loss(self.epochs)
         if self.verbose:
-            epoch_pb.write(f"Training completed. {self.eval_with_win_rate(self.final_n_games)}")
+            epoch_pb.write(f"Epoch {self.epochs:{len(str(self.epochs))}d}: {self.eval_with_win_rate(self.final_n_games)}, Loss: {self.train_losses[-1]:5.2f}, Test Loss: {self.test_losses[-1]:5.2f}")
