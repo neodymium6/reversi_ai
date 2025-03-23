@@ -1,10 +1,9 @@
 import random
 from rust_reversi import AlphaBetaSearch, Board, MatrixEvaluator, MctsSearch, Turn
 from distillation.models import ReversiNet
-
+import tqdm
 
 def vs_random(n_games: int, net: ReversiNet) -> float:
-    print("Vs Random")
     net.eval()
     def two_game():
         win_count = 0
@@ -35,15 +34,15 @@ def vs_random(n_games: int, net: ReversiNet) -> float:
         if board.is_white_win():
             win_count += 1
         return win_count
-
+    
+    pb = tqdm.tqdm(range(n_games // 2), desc="vs_random", leave=False)
     win_count = 0
-    for _ in range(n_games // 2):
+    for _ in pb:
         win_count += two_game()
     win_rate = win_count / n_games
     return win_rate
 
 def vs_mcts(n_games: int, net: ReversiNet) -> float:
-    print("Vs MCTS")
     net.eval()
     search = MctsSearch(100, 1.0, 3)
     def two_game():
@@ -75,15 +74,15 @@ def vs_mcts(n_games: int, net: ReversiNet) -> float:
         if board.is_white_win():
             win_count += 1
         return win_count
-
+    
+    pb = tqdm.tqdm(range(n_games // 2), desc="vs_mcts", leave=False)
     win_count = 0
-    for _ in range(n_games // 2):
+    for _ in pb:
         win_count += two_game()
     win_rate = win_count / n_games
     return win_rate
 
 def vs_alpha_beta(n_games: int, net: ReversiNet, epsilon: float = 0.1) -> float:
-    print("Vs AlphaBeta")
     net.eval()
     def two_game():
         evaluator = MatrixEvaluator([
@@ -133,9 +132,10 @@ def vs_alpha_beta(n_games: int, net: ReversiNet, epsilon: float = 0.1) -> float:
         if board.is_white_win():
             win_count += 1
         return win_count
-
+    
+    pb = tqdm.tqdm(range(n_games // 2), desc="vs_alpha_beta", leave=False)
     win_count = 0
-    for _ in range(n_games // 2):
+    for _ in pb:
         win_count += two_game()
     win_rate = win_count / n_games
     return win_rate
