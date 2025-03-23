@@ -205,6 +205,7 @@ def train_model(data: np.ndarray) -> None:
         with torch.no_grad():
             test_loss = 0.0
             test_tempatured_loss = 0.0
+            pb = tqdm.tqdm(total=len(test_loader), leave=False)
             for student_input, teacher_v in test_loader:
                 student_input = student_input.to(DEVICE)
                 student_v = student_net(student_input)
@@ -214,6 +215,9 @@ def train_model(data: np.ndarray) -> None:
                 teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
                 loss = criterion(student_v, teacher_v)
                 test_tempatured_loss += loss.item()
+                pb.set_description(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
+                pb.update(1)
+            pb.close()
 
             test_loss /= len(test_loader)
             test_tempatured_loss /= len(test_loader)
