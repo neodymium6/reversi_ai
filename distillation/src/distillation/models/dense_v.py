@@ -14,6 +14,10 @@ class DenseNetV(ReversiNet):
         super(DenseNetV, self).__init__()
         self.fc1 = torch.nn.Linear(INPUT_SIZE, hidden_size)
         self.fc2 = torch.nn.Linear(hidden_size, 1)
+        torch.nn.init.kaiming_normal_(self.fc1.weight)
+        torch.nn.init.kaiming_normal_(self.fc2.weight)
+        torch.nn.init.zeros_(self.fc1.bias)
+        torch.nn.init.zeros_(self.fc2.bias)
 
     def forward(self, x) -> torch.Tensor:
         x = self.fc1(x)
@@ -34,22 +38,19 @@ class DenseNetV(ReversiNet):
 
     def get_action(self, board: Board) -> int:
         legal_actions = board.get_legal_moves_vec()
-        best_action = None
-        best_value = None
+        next_boards = []
         for action in legal_actions:
             tmp_board = board.clone()
             tmp_board.do_move(action)
-            board_tensor = self.board2input(tmp_board)
-            board_tensor = board_tensor.to(DEVICE)
-            with torch.no_grad():
-                value = self.forward(board_tensor)
-            value = value.item()
-            value = 1.0 - value
-            value = max(value, 0.0)
-            value = min(value, 1.0)
-            if best_action is None or value > best_value:
-                best_action = action
-                best_value = value
+            next_boards.append(tmp_board)
+        board_tensors = torch.stack([self.board2input(tmp_board) for tmp_board in next_boards])
+        board_tensors = board_tensors.to(DEVICE)
+        with torch.no_grad():
+            values = self.forward(board_tensors)
+        values = values.view(-1)
+        values = -values
+        _best_value, best_index = torch.max(values, 0)
+        best_action = legal_actions[best_index.item()]
         return best_action
 
     @staticmethod
