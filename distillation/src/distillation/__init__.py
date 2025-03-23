@@ -21,7 +21,7 @@ BATCH_SIZE = 512
 LR = 1e-4
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
-MAX_DATA = int(1e6)
+MAX_DATA = int(1e4)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
 COOLING_PHASE_RATIO = 0.8
@@ -34,7 +34,7 @@ teacher_net: ReversiNet = Transformer(
     mlp_ratio=4.0,
     dropout=0.0,
 )
-student_net: ReversiNet = DenseNetV(hidden_size=128)
+student_net: ReversiNet = DenseNetV(hidden_size=64)
 
 class DistillationDataset(torch.utils.data.Dataset):
     def __init__(self, X: np.ndarray):
@@ -179,10 +179,11 @@ def train_model(data: np.ndarray) -> None:
     test_temperatured_losses = []
     metrics = []
     # train loop
-    for epoch in range(N_EPOCHS):
-        print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
+    epoch_pbar = tqdm.tqdm(range(N_EPOCHS), desc="Epoch", leave=False)
+    for epoch in epoch_pbar:
+        # print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
         student_net.train()
-        pb = tqdm.tqdm(total=len(train_loader))
+        pb = tqdm.tqdm(total=len(train_loader), leave=False)
         for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
@@ -217,12 +218,15 @@ def train_model(data: np.ndarray) -> None:
 
             test_loss /= len(test_loader)
             test_tempatured_loss /= len(test_loader)
-            print(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
-            n_games = 50
+            n_games = 100
             random_win_rate = vs_random(n_games, student_net)
             mcts_win_rate = vs_mcts(n_games, student_net)
             alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
-            print(f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
+            epoch_pbar.write(
+                f"Epoch {epoch:{len(str(N_EPOCHS))}d}: " 
+                + f"Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}, "
+                + f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate:.4f}"
+            )
             metrics.append(
                 {
                     "epoch": epoch,
@@ -263,7 +267,11 @@ def train_model(data: np.ndarray) -> None:
     random_win_rate = vs_random(n_games, student_net)
     mcts_win_rate = vs_mcts(n_games, student_net)
     alpha_beta_win_rate = vs_alpha_beta(n_games, student_net)
-    print(f"Final Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate: .4f}")
+    print(
+        f"Epoch {epoch:{len(str(N_EPOCHS))}d}: " 
+        + f"Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}, "
+        + f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate:.4f}"
+    )
 
 
 def main() -> None:
