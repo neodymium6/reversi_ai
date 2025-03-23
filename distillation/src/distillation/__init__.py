@@ -1,6 +1,5 @@
 import numpy as np
 import h5py
-from rust_reversi import Board, Turn
 import torch
 from distillation.models.transfomer import Transformer
 from distillation.models.dense_v import DenseNetV
@@ -22,7 +21,7 @@ BATCH_SIZE = 512
 LR = 1e-3
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
-MAX_DATA = int(1e4)
+MAX_DATA = int(1e6)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
 COOLING_PHASE_RATIO = 0.8
@@ -51,12 +50,12 @@ def load_data() -> np.ndarray:
     data = np.concatenate([data, mcts_data2], axis=0)
     if data.shape[0] > MAX_DATA:
         print(f"Trimming data to {MAX_DATA}")
+        print(f"Using {100 * MAX_DATA / data.shape[0]:.2f}% of data")
         data = np.random.choice(data, MAX_DATA, replace=False)
     return data
 
 
 def train_model(data: np.ndarray) -> None:
-    print("Training model...")
     # load teacher model
     state_dict = torch.load(TEACHER_MODEL_PATH, weights_only=True)
     new_state_dict = {}
@@ -124,7 +123,7 @@ def train_model(data: np.ndarray) -> None:
             hard_loss: torch.Tensor = criterion(student_v, teacher_v)
             teacher_v = temperature_scheduler.temp_teacher(teacher_v)
             soft_loss: torch.Tensor = criterion(student_v, teacher_v)
-            loss = COMPOSITE_LOSS_ALPHA * soft_loss + (1.0 - COMPOSITE_LOSS_ALPHA) * hard_loss
+            loss: torch.Tensor = COMPOSITE_LOSS_ALPHA * soft_loss + (1.0 - COMPOSITE_LOSS_ALPHA) * hard_loss
             loss.backward()
             torch.nn.utils.clip_grad_norm_(student_net.parameters(), 1.0)
             optimizer.step()
@@ -145,18 +144,18 @@ def train_model(data: np.ndarray) -> None:
             for student_input, teacher_v in test_loader:
                 student_input = student_input.to(DEVICE)
                 student_v = student_net(student_input)
-                loss = criterion(student_v, teacher_v)
+                loss: torch.Tensor = criterion(student_v, teacher_v)
                 test_loss += loss.item()
 
                 teacher_v = temperature_scheduler.temp_teacher(teacher_v)
-                loss = criterion(student_v, teacher_v)
-                test_tempatured_loss += loss.item()
-                pb.set_description(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
+                temperatured: torch.Tensor = criterion(student_v, teacher_v)
+                test_tempatured_loss += temperatured.item()
+                pb.set_description(f"Epoch: {epoch}, Test Loss: {loss.item():.4f}, Test Tempatured Loss: {temperatured.item():.4f}")
                 pb.update(1)
             pb.close()
-
             test_loss /= len(test_loader)
             test_tempatured_loss /= len(test_loader)
+        if epoch % (N_EPOCHS // 10) == 0:
             n_games = 100
             random_win_rate = vs_random(n_games, student_net)
             mcts_win_rate = vs_mcts(n_games, student_net)
