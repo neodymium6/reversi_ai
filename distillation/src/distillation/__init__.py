@@ -10,6 +10,7 @@ import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 import matplotlib.pyplot as plt
 from distillation.dataset import DistillationDataset
+from distillation.scheduler import TemperatureScheduler
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 MCTS_DATA2_PATH = "data/mcts_boards2.h5"
@@ -36,29 +37,6 @@ teacher_net: ReversiNet = Transformer(
 )
 student_net: ReversiNet = DenseNetV(hidden_size=64)
 
-class TemperatureScheduler:
-    def __init__(self, start: float, end: float, total_steps: int, cooling_phase_ratio: float = 1.0):
-        self.start = start
-        self.end = end
-        self.total_steps = total_steps
-        self.cooling_phase_ratio = cooling_phase_ratio
-        self.current_temperature = start
-        self.current_step = 0
-        self.warinig_printed = False
-
-    def get_temperature(self):
-        return self.current_temperature
-
-    def step(self):
-        self.current_step += 1
-        if self.current_step > self.total_steps and not self.warinig_printed:
-            self.warinig_printed = True
-            print("Warning: TemperatureScheduler step called after total_steps")
-            return
-        if self.current_step > self.total_steps * self.cooling_phase_ratio:
-            return
-        self.current_temperature = self.start + (self.end - self.start) * self.current_step / (self.total_steps * self.cooling_phase_ratio)
-
 def load_data() -> np.ndarray:
     with h5py.File(MCTS_DATA_PATH, "r") as f:
         mcts_data = f["data"][:]
@@ -76,8 +54,6 @@ def load_data() -> np.ndarray:
         data = np.random.choice(data, MAX_DATA, replace=False)
     return data
 
-def temp_teacher(teacher_v: torch.Tensor, temperature: float) -> torch.Tensor:
-    return 0.5 + (teacher_v - 0.5) / temperature
 
 def train_model(data: np.ndarray) -> None:
     print("Training model...")
@@ -145,7 +121,7 @@ def train_model(data: np.ndarray) -> None:
             optimizer.zero_grad()
             student_v = student_net(student_input)
             hard_loss: torch.Tensor = criterion(student_v, teacher_v)
-            teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
+            teacher_v = temperature_scheduler.temp_teacher(teacher_v)
             soft_loss: torch.Tensor = criterion(student_v, teacher_v)
             loss = COMPOSITE_LOSS_ALPHA * soft_loss + (1.0 - COMPOSITE_LOSS_ALPHA) * hard_loss
             loss.backward()
@@ -169,7 +145,7 @@ def train_model(data: np.ndarray) -> None:
                 loss = criterion(student_v, teacher_v)
                 test_loss += loss.item()
 
-                teacher_v = temp_teacher(teacher_v, temperature_scheduler.get_temperature())
+                teacher_v = temperature_scheduler.temp_teacher(teacher_v)
                 loss = criterion(student_v, teacher_v)
                 test_tempatured_loss += loss.item()
                 pb.set_description(f"Epoch: {epoch}, Test Loss: {test_loss:.4f}, Test Tempatured Loss: {test_tempatured_loss:.4f}")
