@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 import matplotlib.pyplot as plt
-import json
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 MCTS_DATA2_PATH = "data/mcts_boards2.h5"
@@ -18,10 +17,10 @@ TEACHER_MODEL_PATH = "models/teacher_model.pth"
 STUDENT_MODEL_PATH = "models/student_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
-LR = 1e-4
+LR = 1e-3
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
-MAX_DATA = int(1e4)
+MAX_DATA = int(1e6)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
 COOLING_PHASE_RATIO = 0.8
@@ -177,6 +176,7 @@ def train_model(data: np.ndarray) -> None:
     train_losses = []
     test_losses = []
     test_temperatured_losses = []
+    lrs = []
     # train loop
     epoch_pbar = tqdm.tqdm(range(N_EPOCHS), desc="Epoch", leave=False)
     for epoch in epoch_pbar:
@@ -229,6 +229,7 @@ def train_model(data: np.ndarray) -> None:
 
         test_losses.append((epoch+1, test_loss))
         test_temperatured_losses.append((epoch+1, test_tempatured_loss))
+        lrs.append(scheduler.get_last_lr()[0])
         # plot losses
         fig, ax = plt.subplots()
         ax.plot([x[0] for x in train_losses], [x[1] for x in train_losses], label="Train Loss")
@@ -238,7 +239,12 @@ def train_model(data: np.ndarray) -> None:
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
         ax.grid()
-        ax.legend()
+        ax.legend(loc="upper left")
+        ax2 = ax.twinx()
+        ax2.plot(lrs, color="red", label="Learning Rate", linestyle="--")
+        ax2.set_ylabel("Learning Rate")
+        ax2.set_yscale("log")
+        ax2.legend(loc="upper right")
         plt.tight_layout()
         plt.savefig("loss.png", dpi=300)
         plt.close()
