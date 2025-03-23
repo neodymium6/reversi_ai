@@ -116,6 +116,7 @@ def train_model(data: np.ndarray) -> None:
         # print(f"Temperature: {temperature_scheduler.get_temperature():.4f}")
         student_net.train()
         pb = tqdm.tqdm(total=len(train_loader), leave=False)
+        train_loss = 0.0
         for i, (student_input, teacher_v) in enumerate(train_loader):
             student_input: torch.Tensor = student_input.to(DEVICE)
             optimizer.zero_grad()
@@ -130,9 +131,11 @@ def train_model(data: np.ndarray) -> None:
             scheduler.step()
             temperature_scheduler.step()
             pb.set_description(f"Epoch: {epoch}, Loss: {loss.item():.4f}")
-            train_losses.append((epoch + i / len(train_loader), loss.item()))
+            train_loss += loss.item()
             pb.update(1)
         pb.close()
+        train_loss /= len(train_loader)
+        train_losses.append(train_loss)
         student_net.eval()
         torch.save(student_net.state_dict(), STUDENT_MODEL_PATH)
         with torch.no_grad():
@@ -164,14 +167,14 @@ def train_model(data: np.ndarray) -> None:
                 + f"Random Win Rate: {random_win_rate: .4f}, MCTS Win Rate: {mcts_win_rate: .4f}, AlphaBeta Win Rate: {alpha_beta_win_rate:.4f}"
             )
 
-        test_losses.append((epoch+1, test_loss))
-        test_temperatured_losses.append((epoch+1, test_tempatured_loss))
+        test_losses.append(test_loss)
+        test_temperatured_losses.append(test_tempatured_loss)
         lrs.append(scheduler.get_last_lr()[0])
         # plot losses
         fig, ax = plt.subplots()
-        ax.plot([x[0] for x in train_losses], [x[1] for x in train_losses], label="Train Loss")
-        ax.plot([x[0] for x in test_losses], [x[1] for x in test_losses], label="Test Loss")
-        ax.plot([x[0] for x in test_temperatured_losses], [x[1] for x in test_temperatured_losses], label="Test Tempatured Loss")
+        ax.plot(train_losses, label="Train Loss")
+        ax.plot(test_losses, label="Test Loss")
+        ax.plot(test_temperatured_losses, label="Test Tempatured Loss")
         ax.set_yscale("log")
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
