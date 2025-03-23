@@ -19,7 +19,7 @@ MODEL_PATH = "model.pth"
 
 MAX_DATA = int(1e6) * 1
 BATCH_SIZE = 512
-LR = 1e-3
+MAX_LR = 1e-3
 WEIGHT_DECAY = 1e-6
 N_EPOCHS = 100
 HIDDEN_SIZE = 64
@@ -99,7 +99,7 @@ def main() -> None:
     net = DenseNet(HIDDEN_SIZE)
     net.to(DEVICE)
 
-    base_optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+    base_optimizer = torch.optim.AdamW(net.parameters(), lr=MAX_LR, weight_decay=WEIGHT_DECAY)
     optimizer = Lookahead(base_optimizer, k=5, alpha=0.5)
 
     criterion = SignAwareMAE(
@@ -115,6 +115,7 @@ def main() -> None:
         loss_plot_path=LOSS_PLOT_PATH,
         model_path=MODEL_PATH,
         epochs=N_EPOCHS,
+        max_lr=MAX_LR,
         middle_n_games=100,
         final_n_games=500,
         data_loader_update_per_epoch=DATA_LOADER_UPDATE_PER_EPOCH,

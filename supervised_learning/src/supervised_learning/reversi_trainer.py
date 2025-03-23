@@ -17,6 +17,7 @@ class Trainer:
             loss_plot_path: str,
             model_path: str,
             epochs: int,
+            max_lr: float,
             middle_n_games: int = 100,
             final_n_games: int = 500,
             data_loader_update_per_epoch: int = 10,
@@ -37,8 +38,7 @@ class Trainer:
         self.verbose = verbose
         self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             self.optimizer,
-            # max_lr=2e-5,
-            max_lr=7e-3,
+            max_lr=max_lr,
             epochs=epochs,
             steps_per_epoch=len(self.train_loader),
         )
@@ -77,7 +77,7 @@ class Trainer:
 
     def train(self) -> Iterable[None]:
         lr_scheduler_step = 0
-        lr_scheduler_step_max = 100 * len(self.train_loader)
+        lr_scheduler_step_max = self.epochs * len(self.train_loader)
         epoch_pb = tqdm.tqdm(range(self.epochs), leave=False)
         for epoch in epoch_pb:
             self.net.train()
