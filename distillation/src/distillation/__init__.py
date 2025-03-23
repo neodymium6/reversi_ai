@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 import tqdm
 from distillation.vs import vs_random, vs_mcts, vs_alpha_beta
 import matplotlib.pyplot as plt
+from distillation.dataset import DistillationDataset
 
 MCTS_DATA_PATH = "data/mcts_boards.h5"
 MCTS_DATA2_PATH = "data/mcts_boards2.h5"
@@ -20,7 +21,7 @@ BATCH_SIZE = 512
 LR = 1e-3
 WEIGHT_DECAY =1e-5
 N_EPOCHS = 10
-MAX_DATA = int(1e6)
+MAX_DATA = int(1e4)
 TEMPERATURE_START = 1.5
 TEMPERATURE_END = 1.0
 COOLING_PHASE_RATIO = 0.8
@@ -34,62 +35,6 @@ teacher_net: ReversiNet = Transformer(
     dropout=0.0,
 )
 student_net: ReversiNet = DenseNetV(hidden_size=64)
-
-class DistillationDataset(torch.utils.data.Dataset):
-    def __init__(self, X: np.ndarray):
-        self.X = X
-        self.teacher_v = torch.zeros(len(X), 1, dtype=torch.float32)
-        idx = 0
-        pb = tqdm.tqdm(total=len(X) // BATCH_SIZE)
-        pb.set_description("Initializing Distillation Dataset")
-        while idx + BATCH_SIZE < len(X):
-            teacher_input = torch.stack([self._x2teacher_input(x) for x in X[idx:idx+BATCH_SIZE]], dim=0).to(DEVICE)
-            legal_actions = torch.stack([self._legal_actions(x) for x in X[idx:idx+BATCH_SIZE]], dim=0)
-            with torch.no_grad():
-                teacher_output = teacher_net(teacher_input)
-                teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
-                teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
-                self.teacher_v[idx:idx+BATCH_SIZE] = teacher_v
-            idx += BATCH_SIZE
-            pb.update(1)
-        pb.close()
-        teacher_input = torch.stack([self._x2teacher_input(x) for x in X[idx:]], dim=0).to(DEVICE)
-        legal_actions = torch.stack([self._legal_actions(x) for x in X[idx:]], dim=0)
-        with torch.no_grad():
-            teacher_output = teacher_net(teacher_input)
-            teacher_output = teacher_output.masked_fill_(~legal_actions, -1e9)
-            teacher_v = torch.max(teacher_output, dim=1, keepdim=True).values
-            self.teacher_v[idx:] = teacher_v
-        self.teacher_v = self.teacher_v.to(DEVICE)
-
-    def __len__(self):
-        return len(self.X)
-    
-    def _x2teacher_input(self, x: np.void) -> torch.Tensor:
-        return teacher_net.x2input(x)
-    
-    def _x2student_input(self, x: np.void) -> torch.Tensor:
-        return student_net.x2input(x)
-
-    def _legal_actions(self, x: np.void) -> torch.Tensor:
-        player_board = x["player_board"]
-        opponent_board = x["opponent_board"]
-        turn_str = x["turn"]
-        if turn_str == b'Black':
-            turn = Turn.BLACK
-        else:
-            turn = Turn.WHITE
-        board = Board()
-        board.set_board(player_board, opponent_board, turn)
-        legal_actions = torch.tensor(
-            board.get_legal_moves_tf() + [board.is_pass()],
-            dtype=torch.bool,
-            device=DEVICE,
-        )
-        return legal_actions
-
-    def __getitem__(self, idx):
-        return (self._x2student_input(self.X[idx]), self.teacher_v[idx])
 
 class TemperatureScheduler:
     def __init__(self, start: float, end: float, total_steps: int, cooling_phase_ratio: float = 1.0):
@@ -149,8 +94,20 @@ def train_model(data: np.ndarray) -> None:
 
     # init data loaders
     X_train, X_test = train_test_split(data, test_size=0.1, shuffle=True)
-    train_dataset = DistillationDataset(X_train)
-    test_dataset = DistillationDataset(X_test)
+    train_dataset = DistillationDataset(
+        X_train,
+        teacher_net,
+        student_net,
+        DEVICE,
+        BATCH_SIZE,
+    )
+    test_dataset = DistillationDataset(
+        X_test,
+        teacher_net,
+        student_net,
+        DEVICE,
+        BATCH_SIZE,
+    )
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
