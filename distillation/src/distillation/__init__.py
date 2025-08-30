@@ -20,12 +20,13 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 512
 LR = 1e-3
 WEIGHT_DECAY =1e-5
-N_EPOCHS = 10
-MAX_DATA = int(1e6)
-TEMPERATURE_START = 1.5
-TEMPERATURE_END = 1.0
+N_EPOCHS = 100
+MAX_DATA = int(1e7)
+TEMPERATURE_START = 1.0
+TEMPERATURE_END = 0.8
 COOLING_PHASE_RATIO = 0.8
 COMPOSITE_LOSS_ALPHA = 0.7
+SCALE_FACTOR = 100.0
 teacher_net: ReversiNet = Transformer(
     patch_size=2,
     embed_dim=160,
@@ -75,6 +76,7 @@ def train_model(data: np.ndarray) -> None:
         student_net,
         DEVICE,
         BATCH_SIZE,
+        SCALE_FACTOR,
     )
     test_dataset = DistillationDataset(
         X_test,
@@ -82,6 +84,7 @@ def train_model(data: np.ndarray) -> None:
         student_net,
         DEVICE,
         BATCH_SIZE,
+        SCALE_FACTOR,
     )
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
@@ -102,7 +105,8 @@ def train_model(data: np.ndarray) -> None:
         TEMPERATURE_START,
         TEMPERATURE_END,
         N_EPOCHS * len(train_loader),
-        COOLING_PHASE_RATIO,
+        scaling_factor=SCALE_FACTOR,
+        cooling_phase_ratio=COOLING_PHASE_RATIO,
     )
 
     train_losses = []
