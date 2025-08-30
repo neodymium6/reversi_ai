@@ -17,11 +17,11 @@ LOSS_PLOT_PATH = "loss.png"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model.pth"
 
-MAX_DATA = int(1e6) * 1
+MAX_DATA = int(1e6) * 10
 BATCH_SIZE = 512
 MAX_LR = 1e-3
 WEIGHT_DECAY = 1e-6
-N_EPOCHS = 100
+N_EPOCHS = 50
 HIDDEN_SIZE = 64
 PREPROCESS_WORKERS = 20
 DATA_LOADER_WORKERS = 4
