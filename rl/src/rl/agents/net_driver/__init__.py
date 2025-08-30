@@ -27,8 +27,8 @@ class NetDriver(ABC):
         self.net.to(self.device)
         self.target_net.to(self.device)
         self.target_net.load_state_dict(self.net.state_dict())
-        self.net = torch.compile(self.net, mode="max-autotune")
-        self.target_net = torch.compile(self.target_net, mode="max-autotune")
+        # self.net = torch.compile(self.net, mode="max-autotune")
+        # self.target_net = torch.compile(self.target_net, mode="max-autotune")
         if self.verbose:
             for param in self.net.parameters():
                 print(f"Device: {param.device}")

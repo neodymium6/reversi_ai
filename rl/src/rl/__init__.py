@@ -10,8 +10,8 @@ from rl import tuning
 import sys
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 512
-EPISODES = 120000
+BATCH_SIZE = 512 * 2
+EPISODES = 120000 * 8
 MEMORY_RATIO = 3.487
 BATCH_BOARD_SIZE = 240
 
@@ -22,20 +22,20 @@ memory_config = MemoryConfig(
     beta=0.7284,
 )
 
-net_config = TransformerConfig(
-    net_type=NetType.Transformer,
-    patch_size=2,
-    embed_dim=128,
-    num_heads=4,
-    num_layers=8,
-    mlp_ratio=2.0,
-    dropout=0.0,
-)
-
-# net_config = DenseConfig(
-#     hidden_size=256,
-#     net_type=NetType.Dense,
+# net_config = TransformerConfig(
+#     net_type=NetType.Transformer,
+#     patch_size=2,
+#     embed_dim=128,
+#     num_heads=4,
+#     num_layers=8,
+#     mlp_ratio=2.0,
+#     dropout=0.0,
 # )
+
+net_config = DenseConfig(
+    hidden_size=128,
+    net_type=NetType.Dense,
+)
 
 train_config = AgentConfig(
     memory_config=memory_config,
@@ -45,17 +45,18 @@ train_config = AgentConfig(
     n_board_init_random_moves=29,
     p_board_init_random_moves=0.8,
     device=DEVICE,
-    eps_start=1.0,
+    eps_start=0.077348,
     eps_end=0.077348,
     eps_decay=5,
-    lr=2e-5,
+    lr=2e-7,
     gradient_clip=1.0,
-    gamma=0.991,
+    gamma=0.995,
     n_episodes=EPISODES,
-    steps_per_optimize=1,
-    optimize_per_target_update=1,
+    steps_per_optimize=2,
+    optimize_per_target_update=4,
     verbose=True,
-    model_path="cnn_agent.pth",
+    # model_path="cnn_agent.pth",
+    model_path="dense.pth",
 )
 
 vs_config = copy.deepcopy(train_config)
@@ -68,6 +69,7 @@ def train():
         torch.set_float32_matmul_precision("high")
         print(f"Using CUDA, setting float32_matmul_precision to high")
     train_agent = Agent(train_config)
+    train_agent.load("pretrain2.pth")
     train_agent.train()
 
 def vs_random():

@@ -26,10 +26,10 @@ STEPS_PER_OPTIMIZE = 1
 OPTIMIZE_PER_TARGET_UPDATE = 1
 
 TUNE_DIR = "tune"
-TUNE_TARGET = TuneTarget.ARCHITECTURE
+TUNE_TARGET = TuneTarget.ENVIRONMENT
 STUDY_NAME = f"transformer_{TUNE_TARGET.name.lower()}_study_v1"
 STORAGE_URL = f"sqlite:///{TUNE_DIR}/optuna.db"
-N_TRIALS = 100
+N_TRIALS = 200
 RANDOM_SEED = 42
 PRUNE_PERCENTILE = 80.0
 N_STARTUP_TRIALS = 5
@@ -80,14 +80,14 @@ def get_env_params(trial: Trial) -> dict:
         # Total experiences during training will be approximately 60 * EPISODES
         # memory_ratio determines what fraction of total experiences we keep in memory
         return {
-            "memory_ratio": trial.suggest_float("memory_ratio", 0.05, 10.0),
-            "alpha": trial.suggest_float("alpha", 0.0, 1.0),
-            "beta": trial.suggest_float("beta", 0.0, 1.0),
-            "n_board_init_random_moves": trial.suggest_int("n_board_init_random_moves", 4, 30),
-            "p_board_init_random_moves": trial.suggest_float("p_board_init_random_moves", 0.0, 1.0),
-            "eps_end": trial.suggest_float("eps_end", 0.01, 0.1),
+            "memory_ratio": trial.suggest_float("memory_ratio", 2.0, 6.0),
+            "alpha": trial.suggest_float("alpha", 0.7, 1.0),
+            "beta": trial.suggest_float("beta", 0.3, 1.0),
+            "n_board_init_random_moves": trial.suggest_int("n_board_init_random_moves", 20, 30),
+            "p_board_init_random_moves": trial.suggest_float("p_board_init_random_moves", 0.6, 1.0),
+            "eps_end": trial.suggest_float("eps_end", 0.05, 0.1),
             "eps_decay": trial.suggest_int("eps_decay", 5, 50),
-            "gamma": trial.suggest_float("gamma", 0.95, 0.9999),
+            "gamma": trial.suggest_float("gamma", 0.99, 0.9999),
         }
     else:
         # return default values
